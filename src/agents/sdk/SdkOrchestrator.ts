@@ -340,6 +340,13 @@ export async function handleRequest(
         tools: [], // Disable built-in tools, only use MCP
         maxTurns: 5,
         permissionMode: 'bypassPermissions',
+        // Pass environment variables to the Claude CLI subprocess
+        env: {
+          ...process.env,
+          ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api',
+          ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || process.env.OPENROUTER_API_KEY,
+          HOME: process.env.HOME || '/root',
+        },
       },
     });
 

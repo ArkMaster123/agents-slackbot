@@ -9,6 +9,60 @@ const PORT = process.env.PORT || 3000;
 // Create orchestrator instance
 const orchestrator = new Orchestrator();
 
+// Animated thinking messages with color-like effect using emojis
+const THINKING_FRAMES = [
+  '🟣 *Thinking*...',
+  '🔵 *Thinking.*..',
+  '🟢 *Thinking..*.',
+  '🟡 *Thinking...*',
+  '🟠 *Thinking*...',
+  '🔴 *Thinking.*..', 
+  '🟣 *Processing*...',
+  '🔵 *Processing.*..', 
+  '🟢 *Processing..*.',
+  '🟡 *Processing...*',
+  '🟠 *Analyzing*...',
+  '🔴 *Analyzing.*..', 
+  '🟣 *Researching*...',
+  '🔵 *Researching.*..', 
+  '🟢 *Crafting response*...',
+  '🟡 *Almost there*...',
+];
+
+/**
+ * Animated thinking indicator that updates the message while processing
+ */
+function startThinkingAnimation(
+  channel: string,
+  ts: string,
+  slackClient: any
+): { stop: () => void } {
+  let frameIndex = 0;
+  let stopped = false;
+
+  const interval = setInterval(async () => {
+    if (stopped) return;
+    
+    try {
+      await slackClient.chat.update({
+        channel,
+        ts,
+        text: THINKING_FRAMES[frameIndex % THINKING_FRAMES.length],
+      });
+      frameIndex++;
+    } catch (e) {
+      // Ignore rate limiting errors
+    }
+  }, 800); // Update every 800ms
+
+  return {
+    stop: () => {
+      stopped = true;
+      clearInterval(interval);
+    },
+  };
+}
+
 // Type for dependencies
 interface Deps {
   slackClient: typeof slackClient;
@@ -85,8 +139,11 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
   const thinkingMsg = await slackClient.chat.postMessage({
     channel,
     thread_ts: thread_ts || ts,
-    text: '🤔 Routing to the right specialist...',
+    text: '🟣 *Thinking*...',
   });
+
+  // Start the animated thinking indicator
+  const animation = startThinkingAnimation(channel, thinkingMsg.ts!, slackClient);
 
   try {
     const threadMessages = thread_ts
@@ -103,6 +160,9 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
     };
 
     const response = await handleRequest(context);
+
+    // Stop animation before updating with response
+    animation.stop();
 
     const agentEmoji = getAgentEmoji(response.agent);
     const agentName = getAgentName(response.agent);
@@ -123,6 +183,7 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
       ],
     });
   } catch (error: any) {
+    animation.stop();
     console.error('Error in handleAppMention:', error);
 
     await slackClient.chat.update({
@@ -142,8 +203,11 @@ async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
 
   const thinkingMsg = await slackClient.chat.postMessage({
     channel,
-    text: '👋 Thinking...',
+    text: '🟣 *Thinking*...',
   });
+
+  // Start the animated thinking indicator
+  const animation = startThinkingAnimation(channel, thinkingMsg.ts!, slackClient);
 
   try {
     const messages = [
@@ -162,6 +226,9 @@ async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
 
     const response = await handleRequest(context);
 
+    // Stop animation before updating with response
+    animation.stop();
+
     const agentEmoji = getAgentEmoji(response.agent);
     const agentName = getAgentName(response.agent);
     const formattedText = `${agentEmoji} *${agentName}*\n\n${response.text}`;
@@ -172,6 +239,7 @@ async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
       text: formattedText,
     });
   } catch (error: any) {
+    animation.stop();
     console.error('Error in handleDirectMessage:', error);
 
     await slackClient.chat.update({
@@ -195,8 +263,11 @@ async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
   const thinkingMsg = await slackClient.chat.postMessage({
     channel,
     thread_ts,
-    text: '🤔 Processing...',
+    text: '🟣 *Thinking*...',
   });
+
+  // Start the animated thinking indicator
+  const animation = startThinkingAnimation(channel, thinkingMsg.ts!, slackClient);
 
   try {
     const threadMessages = await getThreadMessages(channel, thread_ts);
@@ -211,6 +282,9 @@ async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
 
     const response = await handleRequest(context);
 
+    // Stop animation before updating with response
+    animation.stop();
+
     const agentEmoji = getAgentEmoji(response.agent);
     const agentName = getAgentName(response.agent);
     const formattedText = `${agentEmoji} *${agentName}*\n\n${response.text}`;
@@ -221,6 +295,7 @@ async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
       text: formattedText,
     });
   } catch (error: any) {
+    animation.stop();
     console.error('Error in handleThreadReply:', error);
 
     await slackClient.chat.update({

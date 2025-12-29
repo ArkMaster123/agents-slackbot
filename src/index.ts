@@ -1,13 +1,12 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { slackClient, getBotId, verifySlackRequest, getThreadMessages, isBotInThread } from './slack/client.js';
-import { Orchestrator } from './agents/orchestrator/Orchestrator.js';
+import { handleRequest as sdkHandleRequest } from './agents/sdk/SdkOrchestrator.js';
 import type { SlackEvent } from '@slack/types';
 import 'dotenv/config';
 
 const PORT = process.env.PORT || 3000;
 
-// Create orchestrator instance
-const orchestrator = new Orchestrator();
+console.log('🤖 Using Claude Agent SDK Orchestrator with MCP tools');
 
 // Animated thinking messages with color-like effect using emojis
 const THINKING_FRAMES = [
@@ -67,7 +66,7 @@ function startThinkingAnimation(
 interface Deps {
   slackClient: typeof slackClient;
   getThreadMessages: typeof getThreadMessages;
-  handleRequest: (context: any) => Promise<any>;
+  handleRequest: (context: any, options?: any) => Promise<any>;
   isBotInThread: typeof isBotInThread;
 }
 
@@ -164,20 +163,17 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
-    const agentEmoji = getAgentEmoji(response.agent);
-    const agentName = getAgentName(response.agent);
-    const formattedText = `${agentEmoji} *${agentName}*\n\n${response.text}`;
-
+    // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: formattedText,
+      text: response.text,
       blocks: [
         {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: formattedText,
+            text: response.text,
           },
         },
       ],
@@ -229,14 +225,11 @@ async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
-    const agentEmoji = getAgentEmoji(response.agent);
-    const agentName = getAgentName(response.agent);
-    const formattedText = `${agentEmoji} *${agentName}*\n\n${response.text}`;
-
+    // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: formattedText,
+      text: response.text,
     });
   } catch (error: any) {
     animation.stop();
@@ -285,14 +278,11 @@ async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
-    const agentEmoji = getAgentEmoji(response.agent);
-    const agentName = getAgentName(response.agent);
-    const formattedText = `${agentEmoji} *${agentName}*\n\n${response.text}`;
-
+    // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: formattedText,
+      text: response.text,
     });
   } catch (error: any) {
     animation.stop();
@@ -362,7 +352,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
       const event = payload.event as SlackEvent;
       const botUserId = await getBotId();
 
-      const handleAgentRequest = async (context: any) => orchestrator.handle(context);
+      // Use SDK Orchestrator with MCP tools
+      const handleAgentRequest = async (context: any, options?: any) => sdkHandleRequest(context, options);
       const deps: Deps = { slackClient, getThreadMessages, handleRequest: handleAgentRequest, isBotInThread };
 
       // Respond immediately, process in background

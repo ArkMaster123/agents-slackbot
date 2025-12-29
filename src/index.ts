@@ -160,6 +160,8 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
   const { slackClient, getThreadMessages, handleRequest } = deps;
   const { channel, text, thread_ts, ts, user } = event;
 
+  console.log(`[${new Date().toISOString()}] 📨 Request from ${user}: "${text.slice(0, 100)}..."`);
+
   const thinkingMsg = await slackClient.chat.postMessage({
     channel,
     thread_ts: thread_ts || ts,
@@ -183,13 +185,16 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
       messages,
     };
 
+    console.log(`[${new Date().toISOString()}] 🤖 Calling SDK orchestrator...`);
     const response = await handleRequest(context);
+    console.log(`[${new Date().toISOString()}] ✅ Response received (${response.text.length} chars, agent: ${response.agent})`);
 
     // Stop animation before updating with response
     animation.stop();
 
     // Handle long responses - create preview link if needed
     const finalText = handleLongResponse(response.text, response.agent || 'maven');
+    console.log(`[${new Date().toISOString()}] 📤 Sending to Slack (${finalText.length} chars)`);
 
     // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
@@ -206,9 +211,10 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
         },
       ],
     });
+    console.log(`[${new Date().toISOString()}] ✅ Response sent successfully`);
   } catch (error: any) {
     animation.stop();
-    console.error('Error in handleAppMention:', error);
+    console.error(`[${new Date().toISOString()}] ❌ Error in handleAppMention:`, error);
 
     await slackClient.chat.update({
       channel,

@@ -1,9 +1,4 @@
 import type { SlackEvent } from '@slack/types';
-import { slackClient, getBotId, verifySlackRequest, getThreadMessages } from '../src/slack/client';
-import { handleRequest, type StageCallback } from '../src/agents/sdk/SdkOrchestrator';
-import type { AgentContext } from '../src/agents/base/types';
-import type Anthropic from '@anthropic-ai/sdk';
-import { waitUntil } from '@vercel/functions';
 
 // Vercel function config - 5 minute timeout for agent processing
 export const config = {
@@ -15,11 +10,16 @@ export async function POST(request: Request) {
   const payload = JSON.parse(rawBody);
   const requestType = payload.type as 'url_verification' | 'event_callback';
 
-  // URL verification challenge
+  // URL verification challenge - handle BEFORE any heavy imports
   // See https://api.slack.com/events/url_verification
   if (requestType === 'url_verification') {
     return new Response(payload.challenge, { status: 200 });
   }
+
+  // Dynamic imports - only load heavy dependencies when needed
+  const { slackClient, getBotId, verifySlackRequest, getThreadMessages } = await import('../src/slack/client');
+  const { handleRequest } = await import('../src/agents/sdk/SdkOrchestrator');
+  const { waitUntil } = await import('@vercel/functions');
 
   // Verify request is from Slack
   try {

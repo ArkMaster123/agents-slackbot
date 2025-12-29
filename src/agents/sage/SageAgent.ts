@@ -2,7 +2,14 @@ import { AgentBase } from '../base/AgentBase.js';
 import type { AgentConfig, Tool } from '../base/types.js';
 import { Exa } from 'exa-js';
 
-const exa = new Exa(process.env.EXA_API_KEY);
+// Lazy initialization to avoid startup errors when EXA_API_KEY is not set
+let exaClient: Exa | null = null;
+function getExa(): Exa {
+  if (!exaClient) {
+    exaClient = new Exa(process.env.EXA_API_KEY);
+  }
+  return exaClient;
+}
 
 export class SageAgent extends AgentBase {
   constructor() {
@@ -65,7 +72,7 @@ PERSONALITY:
       execute: async (params: { query: string }) => {
         const { query } = params;
 
-        const { results } = await exa.searchAndContents(query, {
+        const { results } = await getExa().searchAndContents(query, {
           livecrawl: 'fallback',
           numResults: 5,
           text: true,
@@ -106,7 +113,7 @@ PERSONALITY:
         const { topic, includeCompetitors } = params;
 
         // Search for market overview
-        const { results: overviewResults } = await exa.searchAndContents(
+        const { results: overviewResults } = await getExa().searchAndContents(
           `${topic} market overview 2024 2025`,
           {
             numResults: 4,
@@ -116,7 +123,7 @@ PERSONALITY:
         );
 
         // Search for trends and analysis
-        const { results: trendResults } = await exa.searchAndContents(
+        const { results: trendResults } = await getExa().searchAndContents(
           `${topic} trends analysis`,
           {
             numResults: 3,
@@ -130,7 +137,7 @@ PERSONALITY:
 
         if (includeCompetitors) {
           try {
-            const { results: compResults } = await exa.searchAndContents(
+            const { results: compResults } = await getExa().searchAndContents(
               `${topic} key players companies`,
               {
                 numResults: 3,

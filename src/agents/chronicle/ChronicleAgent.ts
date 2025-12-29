@@ -12,7 +12,14 @@ import {
   validateArticle,
 } from './article-format.js';
 
-const exa = new Exa(process.env.EXA_API_KEY);
+// Lazy initialization to avoid startup errors when EXA_API_KEY is not set
+let exaClient: Exa | null = null;
+function getExa(): Exa {
+  if (!exaClient) {
+    exaClient = new Exa(process.env.EXA_API_KEY);
+  }
+  return exaClient;
+}
 
 export class ChronicleAgent extends AgentBase {
   constructor() {
@@ -101,7 +108,7 @@ Never skip research before writing!`,
         // Run searches in parallel
         const searchPromises = [
           // Government + regulatory
-          exa
+          getExa()
             .searchAndContents(`${topic} UK government CQC report`, {
               numResults: 4,
               livecrawl: 'fallback',
@@ -112,7 +119,7 @@ Never skip research before writing!`,
             .catch(() => {}),
 
           // Industry/think tank
-          exa
+          getExa()
             .searchAndContents(`${topic} care sector analysis`, {
               numResults: 4,
               livecrawl: 'fallback',
@@ -128,7 +135,7 @@ Never skip research before writing!`,
             .catch(() => {}),
 
           // News sources
-          exa
+          getExa()
             .searchAndContents(`${topic} UK 2024 2025`, {
               numResults: 4,
               livecrawl: 'fallback',

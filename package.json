@@ -2,7 +2,7 @@
   "name": "agenticators",
   "version": "1.0.0",
   "description": "Agenticators - Multi-agent Slack bot for UK care sector intelligence. Powered by Claude Agent SDK + MCP.",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "type": "module",
   "engines": {
     "node": ">=20.x"
@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "type-check": "tsc --noEmit"
   },
   "keywords": [

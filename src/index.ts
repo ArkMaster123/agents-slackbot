@@ -1,7 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { slackClient, getBotId, verifySlackRequest, getThreadMessages, isBotInThread } from './slack/client.js';
 import { handleRequest as sdkHandleRequest } from './agents/sdk/SdkOrchestrator.js';
-import { createPreview, getPreview, getPreviewUrl, renderPreviewHtml } from './preview/PreviewService.js';
+import { createLocalPreview, getPreview, getPreviewUrl, renderPreviewHtml } from './preview/PreviewService.js';
 import type { SlackEvent } from '@slack/types';
 import 'dotenv/config';
 
@@ -106,9 +106,8 @@ function getAgentName(agent: string): string {
 function handleLongResponse(text: string, agent: string, maxLength: number = 2500): string {
   if (text.length <= maxLength) return text;
   
-  // Create a preview with the full content
-  const previewId = createPreview(text, agent, `${getAgentName(agent)} Response`);
-  const previewUrl = getPreviewUrl(previewId);
+  // Create a local preview with the full content (for non-article responses)
+  const preview = createLocalPreview(text, agent, `${getAgentName(agent)} Response`);
   
   // Try to cut at a natural break point
   const truncated = text.slice(0, maxLength);
@@ -121,7 +120,7 @@ function handleLongResponse(text: string, agent: string, maxLength: number = 250
     ? truncated.slice(0, cutPoint + 1) 
     : truncated;
   
-  return finalText + `\n\n📄 *<${previewUrl}|View Full Response>* _(link expires in 1 hour)_`;
+  return finalText + `\n\n📄 *<${preview.url}|View Full Response>* _(link expires in ${preview.expiresIn})_`;
 }
 
 /**

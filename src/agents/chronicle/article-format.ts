@@ -49,7 +49,85 @@ tags:
 
 3. **Main Content Sections** - Use ## for major sections, ### for subsections
 
-4. **Sources Section** - Comprehensive, categorised sources
+4. **Interactive Components** (use when appropriate):
+   - UK Region Map - for regional data comparisons
+   - Timeline - for policy changes or chronological events
+   - Checklist - for action items or requirements
+   - FAQ - for common questions
+
+5. **Sources Section** - Comprehensive, categorised sources
+
+## INTERACTIVE COMPONENTS
+
+### UK Region Map (for regional data)
+\`\`\`ukmap
+{
+  "title": "Regional Title Here",
+  "subtitle": "Explanatory subtitle",
+  "regions": [
+    {"region": "London", "value": 26.83},
+    {"region": "South East", "value": 24.50},
+    {"region": "East of England", "value": 23.20},
+    {"region": "South West", "value": 21.87},
+    {"region": "West Midlands", "value": 23.10},
+    {"region": "North West", "value": 22.50},
+    {"region": "Yorkshire & Humber", "value": 22.30},
+    {"region": "East Midlands", "value": 22.00},
+    {"region": "Wales", "value": 21.50},
+    {"region": "North East", "value": 21.20},
+    {"region": "Scotland", "value": 22.80},
+    {"region": "Northern Ireland", "value": 20.50}
+  ],
+  "valueLabel": "Label",
+  "valueSuffix": "/hr",
+  "attribution": "Data: Source (Year)"
+}
+\`\`\`
+
+### Timeline (for chronological events)
+\`\`\`timeline
+{
+  "title": "Timeline Title",
+  "subtitle": "Brief description",
+  "events": [
+    {
+      "id": "event-1",
+      "date": "Month Year",
+      "title": "Event Title",
+      "description": "Brief description of what happened.",
+      "status": "negative",
+      "icon": "alert"
+    }
+  ]
+}
+\`\`\`
+Status options: positive (green), negative (red), warning (amber), info (blue), neutral (gray)
+Icon options: calendar, alert, check, x, clock, trending-down, ban, money, users, document
+
+### FAQ (for common questions)
+\`\`\`faq
+{
+  "title": "Frequently Asked Questions",
+  "items": [
+    {
+      "id": "faq-1",
+      "question": "The question here?",
+      "answer": "The detailed answer here."
+    }
+  ]
+}
+\`\`\`
+
+### Checklist (for action items)
+\`\`\`checklist
+{
+  "title": "Checklist Title",
+  "items": [
+    {"id": "item-1", "text": "First action item"},
+    {"id": "item-2", "text": "Second action item"}
+  ]
+}
+\`\`\`
 
 ## SOURCES FORMAT
 
@@ -70,8 +148,11 @@ tags:
 ### Industry Sources
 4. **Trade Body**, Publication (Date): https://example.com
 
+### Academic Research
+5. **University/Journal**, Study title (Date): https://example.com
+
 ### Media Sources
-5. **Publication**, "Article title" (Date): https://example.com
+6. **Publication**, "Article title" (Date): https://example.com
 \`\`\`
 
 ## CATEGORY TYPES
@@ -106,7 +187,16 @@ Use these terms correctly:
 - Safeguarding (not child/adult protection)
 `;
 
-export type SourceCategory = 'primary' | 'government' | 'regulatory' | 'academic' | 'industry' | 'media';
+export const RESEARCH_CATEGORIES = {
+  primary: "Primary research, original reports, first-hand data",
+  government: "Government departments, official statistics, policy documents",
+  regulatory: "CQC, Ofsted, NHS England, regulatory bodies",
+  academic: "University research, peer-reviewed studies, academic journals",
+  industry: "Trade bodies, sector organisations, provider associations",
+  media: "News outlets, journalism, investigative reports",
+} as const;
+
+export type SourceCategory = keyof typeof RESEARCH_CATEGORIES;
 
 export interface ResearchSource {
   title: string;
@@ -115,6 +205,14 @@ export interface ResearchSource {
   category: SourceCategory;
   snippet: string;
   publishedDate?: string;
+  keyFindings?: string[];
+}
+
+export interface ResearchResult {
+  topic: string;
+  sources: ResearchSource[];
+  totalSources: number;
+  byCategory: Record<SourceCategory, number>;
 }
 
 /**

@@ -11,6 +11,14 @@ import {
   countWords,
   validateArticle,
 } from './article-format.js';
+import {
+  reviewArticleQuality,
+  formatQualityReview,
+  generateRevisionInstructions,
+  quickValidateArticle,
+  type QualityScore,
+} from './article-review.js';
+import { createCareScopePreview } from '../../preview/PreviewService.js';
 
 // Lazy initialization to avoid startup errors when EXA_API_KEY is not set
 let exaClient: Exa | null = null;
@@ -250,8 +258,11 @@ Generate the complete article now with proper frontmatter.`;
           }
         }
 
-        // Validate the article
+        // Validate the article structure
         const validation = validateArticle(article);
+
+        // Run automated quality review
+        const qualityReview = reviewArticleQuality(article);
 
         // Calculate stats
         const wordCount = countWords(article);
@@ -261,6 +272,16 @@ Generate the complete article now with proper frontmatter.`;
         const titleMatch = article.match(/title:\s*["']?([^"'\n]+)["']?/);
         const title = titleMatch?.[1] || topic;
 
+        // Build quality summary
+        const qualitySummary = qualityReview.passesThreshold
+          ? `Quality: ${qualityReview.overall}/100 (PASSED)`
+          : `Quality: ${qualityReview.overall}/100 (NEEDS REVISION)`;
+
+        // If quality is poor, include revision instructions
+        const revisionInstructions = qualityReview.passesThreshold
+          ? null
+          : generateRevisionInstructions(qualityReview);
+
         return {
           article,
           title,
@@ -268,10 +289,108 @@ Generate the complete article now with proper frontmatter.`;
           readTime,
           sourcesUsed: sources.length,
           validation,
+          qualityReview: {
+            score: qualityReview.overall,
+            passesThreshold: qualityReview.passesThreshold,
+            breakdown: qualityReview.breakdown,
+            issueCount: qualityReview.issues.length,
+            criticalIssues: qualityReview.issues.filter(i => i.severity === 'critical').length,
+          },
+          revisionInstructions,
           message: validation.valid
-            ? `Article generated: "${title}" (${wordCount} words, ${readTime} min read, ${sources.length} sources)`
-            : `Article generated with validation issues: ${validation.errors.join(', ')}`,
+            ? `Article generated: "${title}" (${wordCount} words, ${readTime} min read, ${sources.length} sources). ${qualitySummary}`
+            : `Article generated with validation issues: ${validation.errors.join(', ')}. ${qualitySummary}`,
         };
+      },
+    });
+
+    // Review article quality tool
+    this.registerTool({
+      name: 'reviewArticleQuality',
+      description: 'Run automated quality checks on an article. Returns detailed scoring and specific issues to fix.',
+      parameters: {
+        type: 'object',
+        properties: {
+          article: {
+            type: 'string',
+            description: 'The full article markdown to review',
+          },
+        },
+        required: ['article'],
+      },
+      execute: async (params: { article: string }) => {
+        const { article } = params;
+        
+        const review = reviewArticleQuality(article);
+        const formattedReview = formatQualityReview(review);
+        
+        return {
+          score: review.overall,
+          passesThreshold: review.passesThreshold,
+          breakdown: review.breakdown,
+          issues: review.issues,
+          formattedReview,
+          revisionInstructions: review.passesThreshold ? null : generateRevisionInstructions(review),
+          message: review.passesThreshold
+            ? `Article passes quality threshold (${review.overall}/100)`
+            : `Article needs revision (${review.overall}/100) - ${review.issues.filter(i => i.severity === 'critical').length} critical issues`,
+        };
+      },
+    });
+
+    // Create preview tool
+    this.registerTool({
+      name: 'createArticlePreview',
+      description: 'Create a shareable preview URL for an article. The preview renders with full CareScope styling and expires in 24 hours.',
+      parameters: {
+        type: 'object',
+        properties: {
+          article: {
+            type: 'string',
+            description: 'The full article markdown including frontmatter',
+          },
+          title: {
+            type: 'string',
+            description: 'Article title for reference',
+          },
+        },
+        required: ['article'],
+      },
+      execute: async (params: { article: string; title?: string }) => {
+        const { article, title } = params;
+        
+        // Quick validation before creating preview
+        const quickCheck = quickValidateArticle(article);
+        if (!quickCheck.valid) {
+          return {
+            success: false,
+            error: 'Article failed validation',
+            validationErrors: quickCheck.errors,
+            message: `Cannot create preview - fix these issues first: ${quickCheck.errors.join(', ')}`,
+          };
+        }
+        
+        const result = await createCareScopePreview(article, {
+          title,
+          createdBy: 'chronicle-agent',
+        });
+        
+        if (result.success) {
+          return {
+            success: true,
+            previewUrl: result.url,
+            previewId: result.id,
+            expiresIn: result.expiresIn,
+            message: `Preview created: ${result.url} (expires in ${result.expiresIn})`,
+          };
+        } else {
+          return {
+            success: false,
+            error: result.error,
+            details: result.details,
+            message: `Failed to create preview: ${result.error}`,
+          };
+        }
       },
     });
   }

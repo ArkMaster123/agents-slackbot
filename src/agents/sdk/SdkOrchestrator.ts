@@ -339,14 +339,15 @@ export async function handleRequest(
         mcpServers: agentMcpServers,
         tools: [], // Disable built-in tools, only use MCP
         maxTurns: 5,
-        // Use acceptEdits mode - bypassPermissions fails with root, default prompts for input
-        permissionMode: 'acceptEdits',
+        // YOLO mode - bypass all permission checks
+        permissionMode: 'bypassPermissions',
+        allowDangerouslySkipPermissions: true,
         // Pass environment variables to the Claude CLI subprocess
         env: {
           ...process.env,
           ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api',
           ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || process.env.OPENROUTER_API_KEY,
-          HOME: process.env.HOME || '/root',
+          HOME: process.env.HOME || '/home/agenticators',
         },
       },
     });

@@ -104,7 +104,9 @@ Also, use your web search tool to check if similar articles already exist on Car
         },
         tools: [], // Disable built-in tools, only use MCP
         maxTurns: 5,
-        permissionMode: 'acceptEdits', // acceptEdits works with root, bypassPermissions doesn't
+        // YOLO mode - bypass all permission checks
+        permissionMode: 'bypassPermissions',
+        allowDangerouslySkipPermissions: true,
       },
     });
 

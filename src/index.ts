@@ -99,6 +99,27 @@ function getAgentName(agent: string): string {
 }
 
 /**
+ * Truncate response to fit Slack's message limit
+ * Slack has a ~4000 char limit for messages, we use 3500 to be safe
+ */
+function truncateForSlack(text: string, maxLength: number = 3500): string {
+  if (text.length <= maxLength) return text;
+  
+  // Try to cut at a natural break point
+  const truncated = text.slice(0, maxLength);
+  const lastNewline = truncated.lastIndexOf('\n');
+  const lastPeriod = truncated.lastIndexOf('. ');
+  
+  // Find the best cut point
+  const cutPoint = Math.max(lastNewline, lastPeriod);
+  const finalText = cutPoint > maxLength * 0.7 
+    ? truncated.slice(0, cutPoint + 1) 
+    : truncated;
+  
+  return finalText + '\n\n_...response truncated for Slack_';
+}
+
+/**
  * Build Anthropic messages from Slack thread
  */
 function buildMessages(
@@ -163,17 +184,20 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
+    // Truncate response if too long for Slack
+    const truncatedText = truncateForSlack(response.text);
+
     // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: response.text,
+      text: truncatedText,
       blocks: [
         {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: response.text,
+            text: truncatedText,
           },
         },
       ],
@@ -225,11 +249,14 @@ async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
+    // Truncate response if too long for Slack
+    const truncatedText = truncateForSlack(response.text);
+
     // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: response.text,
+      text: truncatedText,
     });
   } catch (error: any) {
     animation.stop();
@@ -278,11 +305,14 @@ async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
+    // Truncate response if too long for Slack
+    const truncatedText = truncateForSlack(response.text);
+
     // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: response.text,
+      text: truncatedText,
     });
   } catch (error: any) {
     animation.stop();

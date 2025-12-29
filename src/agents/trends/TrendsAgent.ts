@@ -161,7 +161,7 @@ Remember: Today is ${getCurrentDate()}. Only include recent, verified news with 
         },
         tools: [],
         maxTurns: 8, // Allow multiple searches
-        permissionMode: 'bypassPermissions',
+        permissionMode: 'acceptEdits', // acceptEdits works with root, bypassPermissions doesn't
       },
     });
 

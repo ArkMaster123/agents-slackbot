@@ -1,19 +1,23 @@
 import type { SlackEvent } from '@slack/types';
-import { slackClient, getBotId, verifySlackRequest, getThreadMessages } from '../src/slack/client.js';
-import { handleRequest, type StageCallback } from '../src/agents/sdk/SdkOrchestrator.js';
-import type { AgentContext } from '../src/agents/base/types.js';
+import { slackClient, getBotId, verifySlackRequest, getThreadMessages } from '../src/slack/client';
+import { handleRequest, type StageCallback } from '../src/agents/sdk/SdkOrchestrator';
+import type { AgentContext } from '../src/agents/base/types';
 import type Anthropic from '@anthropic-ai/sdk';
+import { waitUntil } from '@vercel/functions';
 
+// Vercel function config - 5 minute timeout for agent processing
 export const config = {
   maxDuration: 300,
 };
 
-export default async function handler(request: Request) {
+export async function POST(request: Request) {
   const rawBody = await request.text();
   const payload = JSON.parse(rawBody);
+  const requestType = payload.type as 'url_verification' | 'event_callback';
 
   // URL verification challenge
-  if (payload.type === 'url_verification') {
+  // See https://api.slack.com/events/url_verification
+  if (requestType === 'url_verification') {
     return new Response(payload.challenge, { status: 200 });
   }
 
@@ -32,7 +36,7 @@ export default async function handler(request: Request) {
   try {
     // App mentions
     if (event.type === 'app_mention') {
-      handleAppMention(event, botUserId);
+      waitUntil(handleAppMention(event, botUserId));
     }
 
     // Direct messages
@@ -43,7 +47,7 @@ export default async function handler(request: Request) {
       !event.bot_id &&
       event.user !== botUserId
     ) {
-      handleDirectMessage(event, botUserId);
+      waitUntil(handleDirectMessage(event, botUserId));
     }
 
     // Thread replies
@@ -55,7 +59,7 @@ export default async function handler(request: Request) {
       !event.bot_id &&
       event.user !== botUserId
     ) {
-      handleThreadReply(event, botUserId);
+      waitUntil(handleThreadReply(event, botUserId));
     }
 
     return new Response('OK', { status: 200 });
@@ -208,7 +212,7 @@ async function handleThreadReply(event: any, botUserId: string) {
   const { channel, text, thread_ts, user } = event;
 
   // Check if bot is in this thread
-  const { isBotInThread } = await import('../src/slack/client.js');
+  const { isBotInThread } = await import('../src/slack/client');
   const inThread = await isBotInThread(channel, thread_ts, botUserId);
 
   if (!inThread) return; // Don't respond to threads we're not part of

@@ -1,4 +1,4 @@
-import type { AgentRole } from '../agents/base/types.js';
+import type { AgentRole } from '../agents/base/types';
 
 /**
  * Format agent working status message

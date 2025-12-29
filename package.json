@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Agenticators - Multi-agent Slack bot for UK care sector intelligence. Powered by Claude Agent SDK + MCP.",
   "main": "dist/index.js",
-  "type": "module",
   "engines": {
     "node": ">=20.x"
   },

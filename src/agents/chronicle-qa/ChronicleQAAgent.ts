@@ -7,13 +7,9 @@
 
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Load skills.md as system prompt
+// Load skills.md as system prompt (use __dirname directly in CommonJS)
 const SKILLS_PATH = join(__dirname, 'skills.md');
 let SYSTEM_PROMPT: string;
 try {

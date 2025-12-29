@@ -1,5 +1,5 @@
-import { AgentBase } from '../base/AgentBase.js';
-import type { AgentConfig, AgentContext, Tool } from '../base/types.js';
+import { AgentBase } from '../base/AgentBase';
+import type { AgentConfig, AgentContext, Tool } from '../base/types';
 import Exa from 'exa-js';
 import Anthropic from '@anthropic-ai/sdk';
 import {
@@ -10,7 +10,7 @@ import {
   calculateReadTime,
   countWords,
   validateArticle,
-} from './article-format.js';
+} from './article-format';
 
 const exa = new Exa(process.env.EXA_API_KEY);
 

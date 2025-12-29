@@ -1,5 +1,5 @@
-import { AgentBase } from '../base/AgentBase.js';
-import type { AgentConfig, Tool } from '../base/types.js';
+import { AgentBase } from '../base/AgentBase';
+import type { AgentConfig, Tool } from '../base/types';
 import Exa from 'exa-js';
 
 const exa = new Exa(process.env.EXA_API_KEY);

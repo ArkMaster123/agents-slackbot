@@ -1,5 +1,5 @@
-import { AgentBase } from '../base/AgentBase.js';
-import type { AgentConfig, Tool } from '../base/types.js';
+import { AgentBase } from '../base/AgentBase';
+import type { AgentConfig, Tool } from '../base/types';
 import { z } from 'zod';
 
 export class MavenAgent extends AgentBase {

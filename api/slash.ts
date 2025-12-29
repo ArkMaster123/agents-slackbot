@@ -1,11 +1,12 @@
-import { verifySlackRequest } from '../src/slack/client.js';
-import { formatTeamIntroduction } from '../src/slack/formatters.js';
+import { verifySlackRequest } from '../src/slack/client';
+import { formatTeamIntroduction } from '../src/slack/formatters';
 
+// Vercel function config
 export const config = {
-  maxDuration: 300,
+  maxDuration: 60,
 };
 
-export default async function handler(request: Request) {
+export async function POST(request: Request) {
   const rawBody = await request.text();
 
   // Verify request is from Slack
@@ -19,8 +20,8 @@ export default async function handler(request: Request) {
   const command = params.get('command');
   const responseUrl = params.get('response_url');
 
-  // Handle /team command
-  if (command === '/team') {
+  // Handle /aiteam command (was /team)
+  if (command === '/aiteam') {
     const teamIntro = formatTeamIntroduction();
 
     // Send immediate response
@@ -45,8 +46,8 @@ export default async function handler(request: Request) {
     );
   }
 
-  // Handle /aisettings command
-  if (command === '/aisettings') {
+  // Handle /aiteamsettings command (was /aisettings)
+  if (command === '/aiteamsettings') {
     return new Response(
       JSON.stringify({
         response_type: 'ephemeral',

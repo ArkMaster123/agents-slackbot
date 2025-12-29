@@ -1,8 +1,8 @@
-import type { AgentRole, AgentContext, AgentResponse } from '../base/types.js';
-import { MavenAgent } from '../maven/MavenAgent.js';
-import { ScoutAgent } from '../scout/ScoutAgent.js';
-import { SageAgent } from '../sage/SageAgent.js';
-import { ChronicleAgent } from '../chronicle/ChronicleAgent.js';
+import type { AgentRole, AgentContext, AgentResponse } from '../base/types';
+import { MavenAgent } from '../maven/MavenAgent';
+import { ScoutAgent } from '../scout/ScoutAgent';
+import { SageAgent } from '../sage/SageAgent';
+import { ChronicleAgent } from '../chronicle/ChronicleAgent';
 
 /**
  * Call OpenRouter for intent classification

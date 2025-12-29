@@ -8,7 +8,7 @@
  */
 
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { AgentRole, AgentContext, AgentResponse } from '../base/types.js';
+import type { AgentRole, AgentContext, AgentResponse } from '../base/types';
 
 // Agent configurations with system prompts
 const AGENTS: Record<AgentRole, { 

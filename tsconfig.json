@@ -1,11 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "lib": ["ES2022"],
-    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "module": "CommonJS",
+    "lib": ["ESNext"],
     "outDir": "./dist",
-    "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -16,6 +14,6 @@
     "sourceMap": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*", "api/**/*"],
+  "include": ["api/**/*", "src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

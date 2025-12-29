@@ -4,7 +4,7 @@ import type {
   AgentResponse,
   AgentRole,
   Tool,
-} from './types.js';
+} from './types';
 
 // Types for OpenRouter/OpenAI-compatible API
 interface ChatMessage {

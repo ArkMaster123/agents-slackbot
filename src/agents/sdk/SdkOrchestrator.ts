@@ -339,7 +339,8 @@ export async function handleRequest(
         mcpServers: agentMcpServers,
         tools: [], // Disable built-in tools, only use MCP
         maxTurns: 5,
-        permissionMode: 'bypassPermissions',
+        // Don't use bypassPermissions - it fails when running as root
+        // permissionMode: 'default' allows the SDK to handle permissions normally
         // Pass environment variables to the Claude CLI subprocess
         env: {
           ...process.env,

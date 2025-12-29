@@ -151,17 +151,17 @@ Keep responses under 2000 characters. Be concise. Always cite sources.`,
   },
 };
 
-// Exa MCP server configuration (remote HTTP) - FULL tools including code context
+// Exa MCP server configuration (remote HTTP) - All tools including deep researcher
 const EXA_MCP_SERVER = {
   type: 'http' as const,
-  url: `https://mcp.exa.ai/mcp?exaApiKey=${process.env.EXA_API_KEY}&tools=web_search_exa,crawling_exa,company_research_exa,linkedin_search_exa,get_code_context_exa`,
+  url: `https://mcp.exa.ai/mcp?exaApiKey=${process.env.EXA_API_KEY}&tools=web_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check`,
 };
 
 // Firecrawl MCP server (local stdio-based)
 const FIRECRAWL_MCP_SERVER = {
   type: 'stdio' as const,
   command: 'npx',
-  args: ['firecrawl-mcp'],
+  args: ['-y', 'firecrawl-mcp'],
   env: { 
     FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY || '',
     PATH: process.env.PATH || '',

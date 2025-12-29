@@ -1,6 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { slackClient, getBotId, verifySlackRequest, getThreadMessages, isBotInThread } from './slack/client.js';
 import { handleRequest as sdkHandleRequest } from './agents/sdk/SdkOrchestrator.js';
+import { createPreview, getPreview, getPreviewUrl, renderPreviewHtml } from './preview/PreviewService.js';
 import type { SlackEvent } from '@slack/types';
 import 'dotenv/config';
 
@@ -99,11 +100,15 @@ function getAgentName(agent: string): string {
 }
 
 /**
- * Truncate response to fit Slack's message limit
- * Slack has a ~4000 char limit for messages, we use 3500 to be safe
+ * Handle long responses - truncate for Slack and create preview link
+ * Slack has a ~4000 char limit for messages, we use 2500 to leave room for preview link
  */
-function truncateForSlack(text: string, maxLength: number = 3500): string {
+function handleLongResponse(text: string, agent: string, maxLength: number = 2500): string {
   if (text.length <= maxLength) return text;
+  
+  // Create a preview with the full content
+  const previewId = createPreview(text, agent, `${getAgentName(agent)} Response`);
+  const previewUrl = getPreviewUrl(previewId);
   
   // Try to cut at a natural break point
   const truncated = text.slice(0, maxLength);
@@ -116,7 +121,7 @@ function truncateForSlack(text: string, maxLength: number = 3500): string {
     ? truncated.slice(0, cutPoint + 1) 
     : truncated;
   
-  return finalText + '\n\n_...response truncated for Slack_';
+  return finalText + `\n\n📄 *<${previewUrl}|View Full Response>* _(link expires in 1 hour)_`;
 }
 
 /**
@@ -184,20 +189,20 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
-    // Truncate response if too long for Slack
-    const truncatedText = truncateForSlack(response.text);
+    // Handle long responses - create preview link if needed
+    const finalText = handleLongResponse(response.text, response.agent || 'maven');
 
     // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: truncatedText,
+      text: finalText,
       blocks: [
         {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: truncatedText,
+            text: finalText,
           },
         },
       ],
@@ -249,14 +254,14 @@ async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
-    // Truncate response if too long for Slack
-    const truncatedText = truncateForSlack(response.text);
+    // Handle long responses - create preview link if needed
+    const finalText = handleLongResponse(response.text, response.agent || 'maven');
 
     // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: truncatedText,
+      text: finalText,
     });
   } catch (error: any) {
     animation.stop();
@@ -305,14 +310,14 @@ async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
     // Stop animation before updating with response
     animation.stop();
 
-    // Truncate response if too long for Slack
-    const truncatedText = truncateForSlack(response.text);
+    // Handle long responses - create preview link if needed
+    const finalText = handleLongResponse(response.text, response.agent || 'maven');
 
     // SDK Orchestrator already formats with emoji and agent name
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: truncatedText,
+      text: finalText,
     });
   } catch (error: any) {
     animation.stop();
@@ -348,6 +353,32 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   if (url.pathname === '/' || url.pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', service: 'agenticators' }));
+    return;
+  }
+
+  // Preview endpoint - show full response
+  if (url.pathname.startsWith('/preview/')) {
+    const previewId = url.pathname.replace('/preview/', '');
+    const previewData = getPreview(previewId);
+    
+    if (!previewData) {
+      res.writeHead(404, { 'Content-Type': 'text/html' });
+      res.end(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Preview Not Found</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #1a1a2e; color: #fff;">
+          <h1>🔍 Preview Not Found</h1>
+          <p>This preview may have expired or the link is invalid.</p>
+          <p>Previews expire after 1 hour.</p>
+        </body>
+        </html>
+      `);
+      return;
+    }
+    
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(renderPreviewHtml(previewData));
     return;
   }
 

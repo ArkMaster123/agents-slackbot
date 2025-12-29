@@ -4,7 +4,7 @@ import type {
   AgentResponse,
   AgentRole,
   Tool,
-} from './types';
+} from './types.js';
 
 // Types for OpenRouter/OpenAI-compatible API
 interface ChatMessage {
@@ -126,7 +126,7 @@ export abstract class AgentBase {
       // Convert Anthropic-style messages to OpenAI format
       const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt },
-        ...context.messages.map(m => ({
+        ...context.messages.map((m: { role: string; content: string | any }) => ({
           role: m.role as 'user' | 'assistant',
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         }))

@@ -1,6 +1,6 @@
-import { AgentBase } from '../base/AgentBase';
-import type { AgentConfig, AgentContext, Tool } from '../base/types';
-import Exa from 'exa-js';
+import { AgentBase } from '../base/AgentBase.js';
+import type { AgentConfig, AgentContext, Tool } from '../base/types.js';
+import { Exa } from 'exa-js';
 import Anthropic from '@anthropic-ai/sdk';
 import {
   CARESCOPE_ARTICLE_SYSTEM_PROMPT,
@@ -10,7 +10,7 @@ import {
   calculateReadTime,
   countWords,
   validateArticle,
-} from './article-format';
+} from './article-format.js';
 
 const exa = new Exa(process.env.EXA_API_KEY);
 
@@ -73,7 +73,7 @@ Never skip research before writing!`,
         },
         required: ['topic'],
       },
-      execute: async (params) => {
+      execute: async (params: { topic: string; focusAreas?: string[] }) => {
         const { topic, focusAreas } = params;
 
         const allSources: ResearchSource[] = [];
@@ -108,7 +108,7 @@ Never skip research before writing!`,
               includeDomains: ['gov.uk', 'cqc.org.uk', 'nhs.uk'],
               text: true,
             })
-            .then(({ results }) => addSources(results, 'government', 'UK Government'))
+            .then(({ results }: { results: any[] }) => addSources(results, 'government', 'UK Government'))
             .catch(() => {}),
 
           // Industry/think tank
@@ -124,7 +124,7 @@ Never skip research before writing!`,
               ],
               text: true,
             })
-            .then(({ results }) => addSources(results, 'industry', 'Industry Body'))
+            .then(({ results }: { results: any[] }) => addSources(results, 'industry', 'Industry Body'))
             .catch(() => {}),
 
           // News sources
@@ -135,7 +135,7 @@ Never skip research before writing!`,
               category: 'news',
               text: true,
             })
-            .then(({ results }) => addSources(results, 'media', 'News Media'))
+            .then(({ results }: { results: any[] }) => addSources(results, 'media', 'News Media'))
             .catch(() => {}),
         ];
 
@@ -195,7 +195,7 @@ Never skip research before writing!`,
         },
         required: ['topic', 'sources'],
       },
-      execute: async (params, context: AgentContext) => {
+      execute: async (params: { topic: string; sources: ResearchSource[]; angle?: string }, context: AgentContext) => {
         const { topic, sources, angle } = params;
 
         // Build source context for the AI

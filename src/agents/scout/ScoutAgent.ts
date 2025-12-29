@@ -1,6 +1,6 @@
-import { AgentBase } from '../base/AgentBase';
-import type { AgentConfig, Tool } from '../base/types';
-import Exa from 'exa-js';
+import { AgentBase } from '../base/AgentBase.js';
+import type { AgentConfig, Tool } from '../base/types.js';
+import { Exa } from 'exa-js';
 
 // Lazy initialization to avoid loading before env vars are set
 let exaClient: Exa | null = null;
@@ -68,7 +68,7 @@ ALWAYS include sources in your responses!`,
         },
         required: ['query'],
       },
-      execute: async (params) => {
+      execute: async (params: { query: string; specificDomain?: string }) => {
         const { query, specificDomain } = params;
 
         const { results } = await getExa().searchAndContents(query, {
@@ -80,7 +80,7 @@ ALWAYS include sources in your responses!`,
 
         return {
           query,
-          results: results.map((r) => ({
+          results: results.map((r: any) => ({
             title: r.title,
             url: r.url,
             snippet: r.text?.slice(0, 500) || '',
@@ -107,7 +107,7 @@ ALWAYS include sources in your responses!`,
         },
         required: ['companyIdentifier'],
       },
-      execute: async (params) => {
+      execute: async (params: { companyIdentifier: string; findSimilar?: boolean }) => {
         const { companyIdentifier, findSimilar } = params;
 
         // Determine if input is URL or name
@@ -131,7 +131,7 @@ ALWAYS include sources in your responses!`,
             highlights: { numSentences: 3 },
           });
 
-          companyInfo = results.map((r) => ({
+          companyInfo = results.map((r: any) => ({
             title: r.title,
             url: r.url,
             description: r.text?.slice(0, 1000) || '',
@@ -146,7 +146,7 @@ ALWAYS include sources in your responses!`,
             highlights: { numSentences: 3 },
           });
 
-          companyInfo = results.map((r) => ({
+          companyInfo = results.map((r: any) => ({
             title: r.title,
             url: r.url,
             description: r.text?.slice(0, 1000) || '',
@@ -170,7 +170,7 @@ ALWAYS include sources in your responses!`,
             }
           );
 
-          newsAndUpdates = newsResults.map((r) => ({
+          newsAndUpdates = newsResults.map((r: any) => ({
             title: r.title,
             url: r.url,
             snippet: r.text?.slice(0, 500) || '',
@@ -193,7 +193,7 @@ ALWAYS include sources in your responses!`,
               }
             );
 
-            similarCompanies = similarResults.map((r) => ({
+            similarCompanies = similarResults.map((r: any) => ({
               title: r.title,
               url: r.url,
               description: r.highlights?.join(' ') || r.text?.slice(0, 300) || '',
@@ -231,7 +231,7 @@ ALWAYS include sources in your responses!`,
         },
         required: ['query'],
       },
-      execute: async (params) => {
+      execute: async (params: { query: string; numResults?: number }) => {
         const { query, numResults = 5 } = params;
         const limitedResults = Math.min(numResults, 10);
 
@@ -243,7 +243,7 @@ ALWAYS include sources in your responses!`,
 
         return {
           query,
-          people: results.map((r) => ({
+          people: results.map((r: any) => ({
             name: r.title,
             profileUrl: r.url,
             summary: r.text?.slice(0, 500) || '',

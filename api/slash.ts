@@ -1,5 +1,5 @@
-import { verifySlackRequest } from '../src/slack/client';
-import { formatTeamIntroduction } from '../src/slack/formatters';
+import { verifySlackRequest } from '../src/slack/client.js';
+import { formatTeamIntroduction } from '../src/slack/formatters.js';
 
 // Vercel function config
 export const config = {

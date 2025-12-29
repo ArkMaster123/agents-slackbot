@@ -1,8 +1,8 @@
-import type { AgentRole, AgentContext, AgentResponse } from '../base/types';
-import { MavenAgent } from '../maven/MavenAgent';
-import { ScoutAgent } from '../scout/ScoutAgent';
-import { SageAgent } from '../sage/SageAgent';
-import { ChronicleAgent } from '../chronicle/ChronicleAgent';
+import type { AgentRole, AgentContext, AgentResponse } from '../base/types.js';
+import { MavenAgent } from '../maven/MavenAgent.js';
+import { ScoutAgent } from '../scout/ScoutAgent.js';
+import { SageAgent } from '../sage/SageAgent.js';
+import { ChronicleAgent } from '../chronicle/ChronicleAgent.js';
 
 /**
  * Call OpenRouter for intent classification
@@ -107,7 +107,7 @@ export class Orchestrator {
   private async classifyIntent(context: AgentContext): Promise<AgentRole> {
     // Get the last user message
     const lastMessage = context.messages
-      .filter((m) => m.role === 'user')
+      .filter((m: { role: string }) => m.role === 'user')
       .pop();
 
     if (!lastMessage || typeof lastMessage.content !== 'string') {

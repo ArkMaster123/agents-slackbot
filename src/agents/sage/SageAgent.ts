@@ -1,6 +1,6 @@
-import { AgentBase } from '../base/AgentBase';
-import type { AgentConfig, Tool } from '../base/types';
-import Exa from 'exa-js';
+import { AgentBase } from '../base/AgentBase.js';
+import type { AgentConfig, Tool } from '../base/types.js';
+import { Exa } from 'exa-js';
 
 const exa = new Exa(process.env.EXA_API_KEY);
 
@@ -62,7 +62,7 @@ PERSONALITY:
         },
         required: ['query'],
       },
-      execute: async (params) => {
+      execute: async (params: { query: string }) => {
         const { query } = params;
 
         const { results } = await exa.searchAndContents(query, {
@@ -73,7 +73,7 @@ PERSONALITY:
 
         return {
           query,
-          results: results.map((r) => ({
+          results: results.map((r: any) => ({
             title: r.title,
             url: r.url,
             snippet: r.text?.slice(0, 800) || '',
@@ -102,7 +102,7 @@ PERSONALITY:
         },
         required: ['topic'],
       },
-      execute: async (params) => {
+      execute: async (params: { topic: string; includeCompetitors?: boolean }) => {
         const { topic, includeCompetitors } = params;
 
         // Search for market overview
@@ -140,7 +140,7 @@ PERSONALITY:
               }
             );
 
-            competitorData = compResults.map((r) => ({
+            competitorData = compResults.map((r: any) => ({
               title: r.title,
               url: r.url,
               description: r.text?.slice(0, 500) || '',
@@ -152,12 +152,12 @@ PERSONALITY:
 
         return {
           topic,
-          overview: overviewResults.map((r) => ({
+          overview: overviewResults.map((r: any) => ({
             title: r.title,
             url: r.url,
             content: r.text?.slice(0, 1000) || '',
           })),
-          trends: trendResults.map((r) => ({
+          trends: trendResults.map((r: any) => ({
             title: r.title,
             url: r.url,
             content: r.text?.slice(0, 1000) || '',

@@ -6,7 +6,7 @@
  */
 
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
-import Exa from 'exa-js';
+import { Exa } from 'exa-js';
 import { z } from 'zod';
 
 // Lazy initialization of Exa client
@@ -46,7 +46,7 @@ export const exaServer = createSdkMcpServer({
             return { content: [{ type: 'text', text: `No results found for: "${query}"` }] };
           }
 
-          const formatted = results.map((r, i) => 
+          const formatted = results.map((r: any, i: number) => 
             `### ${i + 1}. ${r.title || 'Untitled'}\n${r.url}\n\n${r.text?.slice(0, 400) || 'No content available'}...`
           ).join('\n\n---\n\n');
 
@@ -88,7 +88,7 @@ export const exaServer = createSdkMcpServer({
 
           if (companyResults.length > 0) {
             output += `### Overview\n`;
-            companyResults.forEach((r) => {
+            companyResults.forEach((r: any) => {
               output += `**${r.title}**\n${r.highlights?.join(' ') || r.text?.slice(0, 400) || ''}\n\nSource: ${r.url}\n\n`;
             });
           }
@@ -103,7 +103,7 @@ export const exaServer = createSdkMcpServer({
 
             if (newsResults.length > 0) {
               output += `### Recent News\n`;
-              newsResults.forEach((r) => {
+              newsResults.forEach((r: any) => {
                 output += `- **${r.title}**\n  ${r.text?.slice(0, 200) || ''}\n  ${r.url}\n\n`;
               });
             }
@@ -119,7 +119,7 @@ export const exaServer = createSdkMcpServer({
 
               if (similarResults.length > 0) {
                 output += `### Competitors / Similar Companies\n`;
-                similarResults.forEach((r) => {
+                similarResults.forEach((r: any) => {
                   output += `- **${r.title}**: ${r.text?.slice(0, 150) || ''}\n  ${r.url}\n`;
                 });
               }
@@ -153,7 +153,7 @@ export const exaServer = createSdkMcpServer({
           }
 
           let output = `## People Found: "${query}"\n\n`;
-          results.forEach((r, i) => {
+          results.forEach((r: any, i: number) => {
             output += `### ${i + 1}. ${r.title || 'Unknown'}\n`;
             output += `**Profile:** ${r.url}\n\n`;
             output += `${r.text?.slice(0, 300) || 'No summary available'}\n\n`;
@@ -189,7 +189,7 @@ export const exaServer = createSdkMcpServer({
           );
 
           output += `### Market Overview\n`;
-          overviewResults.forEach((r) => {
+          overviewResults.forEach((r: any) => {
             output += `**${r.title}**\n${r.text?.slice(0, 400) || ''}\n\nSource: ${r.url}\n\n`;
           });
 
@@ -200,7 +200,7 @@ export const exaServer = createSdkMcpServer({
           );
 
           output += `### Trends & Forecasts\n`;
-          trendResults.forEach((r) => {
+          trendResults.forEach((r: any) => {
             output += `- **${r.title}**\n  ${r.text?.slice(0, 300) || ''}\n  Source: ${r.url}\n\n`;
           });
 
@@ -212,7 +212,7 @@ export const exaServer = createSdkMcpServer({
             );
 
             output += `### Key Players\n`;
-            playerResults.forEach((r) => {
+            playerResults.forEach((r: any) => {
               output += `- **${r.title}**\n  ${r.text?.slice(0, 250) || ''}\n  Source: ${r.url}\n\n`;
             });
           }
@@ -239,7 +239,7 @@ export const exaServer = createSdkMcpServer({
           });
 
           let output = `## Background Research: "${query}"\n\n`;
-          results.forEach((r) => {
+          results.forEach((r: any) => {
             output += `### ${r.title || 'Source'}\n`;
             output += `${r.text?.slice(0, 600) || ''}\n\n`;
             output += `Source: ${r.url}${r.publishedDate ? ` | Published: ${r.publishedDate}` : ''}\n\n---\n\n`;
@@ -275,7 +275,7 @@ export const exaServer = createSdkMcpServer({
 
           output += `### Government & Regulatory Sources\n`;
           if (govResults.length > 0) {
-            govResults.forEach((r) => {
+            govResults.forEach((r: any) => {
               output += `**${r.title}**\n${r.text?.slice(0, 350) || ''}\n\nSource: ${r.url}\n\n`;
             });
           } else {
@@ -290,7 +290,7 @@ export const exaServer = createSdkMcpServer({
 
           output += `### Think Tank & Industry Sources\n`;
           if (thinkTankResults.length > 0) {
-            thinkTankResults.forEach((r) => {
+            thinkTankResults.forEach((r: any) => {
               output += `**${r.title}**\n${r.text?.slice(0, 350) || ''}\n\nSource: ${r.url}\n\n`;
             });
           } else {
@@ -305,7 +305,7 @@ export const exaServer = createSdkMcpServer({
 
           output += `### Recent News\n`;
           if (newsResults.length > 0) {
-            newsResults.forEach((r) => {
+            newsResults.forEach((r: any) => {
               output += `**${r.title}**\n${r.text?.slice(0, 300) || ''}\n\nSource: ${r.url}${r.publishedDate ? ` | ${r.publishedDate}` : ''}\n\n`;
             });
           } else {

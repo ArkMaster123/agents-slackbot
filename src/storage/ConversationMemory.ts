@@ -1,4 +1,4 @@
-import type { AgentRole } from '../agents/base/types';
+import type { AgentRole } from '../agents/base/types.js';
 import type Anthropic from '@anthropic-ai/sdk';
 
 /**

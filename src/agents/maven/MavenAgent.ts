@@ -1,6 +1,5 @@
-import { AgentBase } from '../base/AgentBase';
-import type { AgentConfig, Tool } from '../base/types';
-import { z } from 'zod';
+import { AgentBase } from '../base/AgentBase.js';
+import type { AgentConfig, Tool } from '../base/types.js';
 
 export class MavenAgent extends AgentBase {
   constructor() {
@@ -57,7 +56,7 @@ CAPABILITIES:
         },
         required: ['latitude', 'longitude', 'city'],
       },
-      execute: async (params) => {
+      execute: async (params: { latitude: number; longitude: number; city: string }) => {
         const { latitude, longitude, city } = params;
 
         const response = await fetch(

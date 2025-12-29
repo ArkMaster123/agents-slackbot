@@ -17,8 +17,8 @@ export async function POST(request: Request) {
   }
 
   // Dynamic imports - only load heavy dependencies when needed
-  const { slackClient, getBotId, verifySlackRequest, getThreadMessages, isBotInThread } = await import('../src/slack/client');
-  const { handleRequest } = await import('../src/agents/sdk/SdkOrchestrator');
+  const { slackClient, getBotId, verifySlackRequest, getThreadMessages, isBotInThread } = await import('../src/slack/client.js');
+  const { handleRequest } = await import('../src/agents/sdk/SdkOrchestrator.js');
   const { waitUntil } = await import('@vercel/functions');
 
   // Verify request is from Slack

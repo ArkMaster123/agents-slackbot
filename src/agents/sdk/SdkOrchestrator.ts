@@ -8,7 +8,7 @@
  */
 
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import type { AgentRole, AgentContext, AgentResponse } from '../base/types';
+import type { AgentRole, AgentContext, AgentResponse } from '../base/types.js';
 
 // Agent configurations with system prompts
 const AGENTS: Record<AgentRole, { 
@@ -288,7 +288,7 @@ export async function handleRequest(
 
   // Get the last user message
   const lastMessage = context.messages
-    .filter((m) => m.role === 'user')
+    .filter((m: { role: string }) => m.role === 'user')
     .pop();
 
   if (!lastMessage || typeof lastMessage.content !== 'string') {
@@ -310,7 +310,7 @@ export async function handleRequest(
 
   // Build conversation history
   const conversationHistory = context.messages
-    .map((m) => {
+    .map((m: { role: string; content: string | any }) => {
       if (m.role === 'user') {
         return `User: ${typeof m.content === 'string' ? m.content : JSON.stringify(m.content)}`;
       }

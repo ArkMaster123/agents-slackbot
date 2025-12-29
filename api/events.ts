@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   }
 
   // Dynamic imports - only load heavy dependencies when needed
-  const { slackClient, getBotId, verifySlackRequest, getThreadMessages } = await import('../src/slack/client');
+  const { slackClient, getBotId, verifySlackRequest, getThreadMessages, isBotInThread } = await import('../src/slack/client');
   const { handleRequest } = await import('../src/agents/sdk/SdkOrchestrator');
   const { waitUntil } = await import('@vercel/functions');
 
@@ -32,11 +32,14 @@ export async function POST(request: Request) {
   const event = payload.event as SlackEvent;
   const botUserId = await getBotId();
 
+  // Dependencies object to pass to handlers
+  const deps = { slackClient, getThreadMessages, handleRequest, isBotInThread };
+
   // Handle different event types
   try {
     // App mentions
     if (event.type === 'app_mention') {
-      waitUntil(handleAppMention(event, botUserId));
+      waitUntil(handleAppMention(event, botUserId, deps));
     }
 
     // Direct messages
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
       !event.bot_id &&
       event.user !== botUserId
     ) {
-      waitUntil(handleDirectMessage(event, botUserId));
+      waitUntil(handleDirectMessage(event, botUserId, deps));
     }
 
     // Thread replies
@@ -59,7 +62,7 @@ export async function POST(request: Request) {
       !event.bot_id &&
       event.user !== botUserId
     ) {
-      waitUntil(handleThreadReply(event, botUserId));
+      waitUntil(handleThreadReply(event, botUserId, deps));
     }
 
     return new Response('OK', { status: 200 });
@@ -69,10 +72,19 @@ export async function POST(request: Request) {
   }
 }
 
+// Type for dependencies
+interface Deps {
+  slackClient: any;
+  getThreadMessages: (channel: string, threadTs: string) => Promise<any[]>;
+  handleRequest: (context: any, options?: any) => Promise<any>;
+  isBotInThread: (channel: string, threadTs: string, botId: string) => Promise<boolean>;
+}
+
 /**
  * Handle @mentions in channels
  */
-async function handleAppMention(event: any, botUserId: string) {
+async function handleAppMention(event: any, botUserId: string, deps: Deps) {
+  const { slackClient, getThreadMessages, handleRequest } = deps;
   const { channel, text, thread_ts, ts, user } = event;
 
   // Post initial thinking message
@@ -92,7 +104,7 @@ async function handleAppMention(event: any, botUserId: string) {
     const messages = buildMessages(threadMessages, text, botUserId);
 
     // Create agent context
-    const context: AgentContext = {
+    const context = {
       userId: user,
       threadId: thread_ts || ts,
       channelId: channel,
@@ -101,7 +113,7 @@ async function handleAppMention(event: any, botUserId: string) {
 
     // Handle with SDK Orchestrator (with stage updates)
     const response = await handleRequest(context, {
-      onStage: async (stage, data) => {
+      onStage: async (stage: string, data: any) => {
         // Update thinking message with stage info
         let stageText = '🤔 Processing...';
         switch (stage) {
@@ -159,7 +171,8 @@ async function handleAppMention(event: any, botUserId: string) {
 /**
  * Handle direct messages
  */
-async function handleDirectMessage(event: any, botUserId: string) {
+async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
+  const { slackClient, handleRequest } = deps;
   const { channel, text, user } = event;
 
   // Post thinking message
@@ -170,15 +183,15 @@ async function handleDirectMessage(event: any, botUserId: string) {
 
   try {
     // Build messages
-    const messages: Anthropic.MessageParam[] = [
+    const messages = [
       {
-        role: 'user',
+        role: 'user' as const,
         content: text,
       },
     ];
 
     // Create agent context
-    const context: AgentContext = {
+    const context = {
       userId: user,
       threadId: channel,
       channelId: channel,
@@ -208,11 +221,11 @@ async function handleDirectMessage(event: any, botUserId: string) {
 /**
  * Handle thread replies
  */
-async function handleThreadReply(event: any, botUserId: string) {
+async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
+  const { slackClient, getThreadMessages, handleRequest, isBotInThread } = deps;
   const { channel, text, thread_ts, user } = event;
 
   // Check if bot is in this thread
-  const { isBotInThread } = await import('../src/slack/client');
   const inThread = await isBotInThread(channel, thread_ts, botUserId);
 
   if (!inThread) return; // Don't respond to threads we're not part of
@@ -232,7 +245,7 @@ async function handleThreadReply(event: any, botUserId: string) {
     const messages = buildMessages(threadMessages, text, botUserId);
 
     // Create context
-    const context: AgentContext = {
+    const context = {
       userId: user,
       threadId: thread_ts,
       channelId: channel,
@@ -266,14 +279,14 @@ function buildMessages(
   threadMessages: any[],
   currentText: string,
   botUserId: string
-): Anthropic.MessageParam[] {
-  const messages: Anthropic.MessageParam[] = [];
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
 
   // Add thread history
   for (const msg of threadMessages) {
     if (msg.bot_id || msg.subtype) continue; // Skip bot messages and system messages
 
-    const role = msg.user === botUserId ? 'assistant' : 'user';
+    const role: 'user' | 'assistant' = msg.user === botUserId ? 'assistant' : 'user';
     const content = msg.text || '';
 
     // Remove bot mention

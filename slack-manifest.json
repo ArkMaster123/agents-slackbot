@@ -1,0 +1,75 @@
+{
+  "display_information": {
+    "name": "Agenticators",
+    "description": "Your AI crew for UK care sector intelligence",
+    "background_color": "#4A154B",
+    "long_description": "Agenticators is a powerful multi-agent AI Slack bot featuring 5 specialized agents:\n\n🔍 Scout - Research Specialist: Web search, company research, LinkedIn, code/repos\n🧙 Sage - Strategic Analyst: Deep analysis, comparisons, market research\n✍️ Chronicle - News Editor: UK social care articles and journalism\n👋 Maven - General Assistant: Friendly help and routing\n📈 Trends - SEO Intelligence: Google rankings, trending keywords, UK care news\n\nJust mention @Agenticators or send a DM to get started!"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": true,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "Agenticators",
+      "always_online": true
+    },
+    "slash_commands": [
+      {
+        "command": "/aiteam",
+        "url": "https://YOUR_VERCEL_URL/api/slash",
+        "description": "Meet the AI agent team",
+        "usage_hint": "[agent name]",
+        "should_escape": false
+      },
+      {
+        "command": "/trends",
+        "url": "https://YOUR_VERCEL_URL/api/slash",
+        "description": "Get trending UK care news and keywords",
+        "usage_hint": "[topic or 'top 10']",
+        "should_escape": false
+      },
+      {
+        "command": "/aiteamsettings",
+        "url": "https://YOUR_VERCEL_URL/api/slash",
+        "description": "Configure AI agent settings",
+        "usage_hint": "[setting] [value]",
+        "should_escape": false
+      }
+    ]
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "mpim:history",
+        "mpim:read",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "request_url": "https://YOUR_VERCEL_URL/api/events",
+      "bot_events": [
+        "app_mention",
+        "message.im"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": false
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

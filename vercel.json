@@ -1,7 +1,9 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
   "functions": {
     "api/**/*.ts": {
-      "runtime": "nodejs22.x"
+      "maxDuration": 300
     }
   }
 }

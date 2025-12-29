@@ -1,11 +1,11 @@
 import type { SlackEvent } from '@slack/types';
 import { slackClient, getBotId, verifySlackRequest, getThreadMessages } from '../src/slack/client.js';
-import { Orchestrator } from '../src/agents/orchestrator/Orchestrator.js';
+import { handleRequest, type StageCallback } from '../src/agents/sdk/SdkOrchestrator.js';
 import type { AgentContext } from '../src/agents/base/types.js';
 import type Anthropic from '@anthropic-ai/sdk';
 
 export const config = {
-  runtime: 'nodejs22.x',
+  maxDuration: 300,
 };
 
 export default async function handler(request: Request) {
@@ -95,9 +95,36 @@ async function handleAppMention(event: any, botUserId: string) {
       messages,
     };
 
-    // Orchestrate the request
-    const orchestrator = new Orchestrator();
-    const response = await orchestrator.handle(context);
+    // Handle with SDK Orchestrator (with stage updates)
+    const response = await handleRequest(context, {
+      onStage: async (stage, data) => {
+        // Update thinking message with stage info
+        let stageText = '🤔 Processing...';
+        switch (stage) {
+          case 'routing':
+            stageText = '🎯 Routing to the right specialist...';
+            break;
+          case 'thinking':
+            stageText = `${data?.emoji || '🤔'} ${data?.agent || 'Agent'} is thinking...`;
+            break;
+          case 'tool_call':
+            stageText = `🔧 Using tool: ${data?.tool}...`;
+            break;
+          case 'responding':
+            stageText = '💬 Preparing response...';
+            break;
+        }
+        try {
+          await slackClient.chat.update({
+            channel,
+            ts: thinkingMsg.ts!,
+            text: stageText,
+          });
+        } catch (e) {
+          // Ignore update errors (rate limiting, etc.)
+        }
+      },
+    });
 
     // Update thinking message with response
     await slackClient.chat.update({
@@ -154,9 +181,8 @@ async function handleDirectMessage(event: any, botUserId: string) {
       messages,
     };
 
-    // Orchestrate
-    const orchestrator = new Orchestrator();
-    const response = await orchestrator.handle(context);
+    // Handle with SDK Orchestrator
+    const response = await handleRequest(context);
 
     // Update message
     await slackClient.chat.update({
@@ -209,9 +235,8 @@ async function handleThreadReply(event: any, botUserId: string) {
       messages,
     };
 
-    // Orchestrate
-    const orchestrator = new Orchestrator();
-    const response = await orchestrator.handle(context);
+    // Handle with SDK Orchestrator
+    const response = await handleRequest(context);
 
     // Update message
     await slackClient.chat.update({

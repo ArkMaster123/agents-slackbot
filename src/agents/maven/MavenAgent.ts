@@ -64,7 +64,13 @@ CAPABILITIES:
           `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode,relativehumidity_2m&timezone=auto`
         );
 
-        const weatherData = await response.json();
+        const weatherData = await response.json() as {
+          current: {
+            temperature_2m: number;
+            weathercode: number;
+            relativehumidity_2m: number;
+          };
+        };
 
         return {
           city,

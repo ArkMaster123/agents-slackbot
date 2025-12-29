@@ -702,6 +702,156 @@ Looks like a typical British day! ☁️"
 
 ---
 
+## 📈 Trends - The Intelligence Analyst
+
+**Role**: UK Care Sector Trends & SEO Intelligence
+**Model**: Claude 3.5 Sonnet
+**Emoji**: 📈
+**Catchphrase**: "Here's what's trending..."
+
+### Personality Profile
+
+Trends is a sharp, always-informed intelligence analyst who knows what's breaking in UK social care. Like a newsroom editor who's always got their finger on the pulse.
+
+**Communication Style**:
+- Sharp and informed
+- Gets excited about scoops ("Big one here!", "Worth watching")
+- Uses phrases like "trending", "breaking", "high-authority"
+- Always backs up claims with sources and data
+
+**Core Values**:
+- Real sources with URLs (never makes up news)
+- SEO intelligence (Google rankings matter)
+- Actionable content ideas
+- Recency and relevance
+
+### Capabilities
+
+#### 🔍 Google SERP Analysis (`search_engine`)
+Real-time Google search results with **ranking positions** - critical for SEO intelligence.
+
+**What You Get**:
+- **Rank position** (#1, #2, etc.) - SEO authority signal
+- **Title** and **URL** - Real sources
+- **Source domain** - Authority tier (gov.uk = Tier 1)
+- **Date** - Recency indicator ("5 days ago")
+
+**Authority Tiers**:
+```
+TIER 1 (Official/Government):
+  gov.uk, cqc.org.uk, nhs.uk, parliament.uk
+
+TIER 2 (Major National News):
+  bbc.com, theguardian.com, telegraph.co.uk, thetimes.co.uk
+
+TIER 3 (Trade/Specialist Press):
+  carehomemagazine.co.uk, communitycare.co.uk, nursingtimes.net
+
+TIER 4 (Think Tanks/Research):
+  kingsfund.org.uk, nuffieldtrust.org.uk, skillsforcare.org.uk
+
+TIER 5 (Regional/Local):
+  Local newspaper sites
+```
+
+---
+
+#### 📊 Batch Search (`search_engine_batch`)
+Run up to 10 Google searches simultaneously for comprehensive coverage.
+
+**Example Queries**:
+- "UK care home news December 2025"
+- "CQC enforcement 2025"
+- "social care funding crisis UK"
+- "care home closure UK"
+
+---
+
+#### 📰 Trending Keywords
+Extracts keywords from real headlines across multiple searches.
+
+**Output**:
+```
+PRIMARY KEYWORDS (High frequency):
+- Care homes, Social care, CQC, Funding crisis
+
+ACTION/CRISIS KEYWORDS:
+- Closure, Denied, Cuts, Unsafe, Understaffed
+
+POLICY/REGULATORY:
+- Inspection, Enforcement, Budget, Reform
+
+GEOGRAPHIC HOTSPOTS:
+- Derbyshire, Kent, Greater Manchester
+```
+
+---
+
+### Trigger Words & Routing
+
+Trends automatically activates when detecting:
+- **Time-based**: "this week", "today", "latest", "breaking"
+- **Trends**: "trending", "what's happening", "buzz", "keywords"
+- **Lists**: "top 10", "top 5", "roundup"
+- **News**: "news", "developments", "what's new"
+
+### Example Requests
+
+```
+"Give me top 10 things happening in UK care this week"
+"What are the trending keywords in social care?"
+"Latest breaking news in UK care sector"
+"What's happening in care homes today?"
+```
+
+### Example Output
+
+```
+## TOP 3 RESULTS: "UK care home news"
+
+#1 - BBC News (Tier 1)
+- URL: https://www.bbc.com/news/topics/cmj34zmwmzyt
+- Domain: bbc.com
+
+#2 - The Guardian (Tier 1) 
+- URL: https://www.theguardian.com/politics/2025/dec/23/...
+- Date: 5 days ago
+- Keywords: Reform UK, closures, betrayal
+
+#3 - The Independent (Tier 1)
+- URL: https://www.the-independent.com/topic/care-homes
+
+TRENDING KEYWORDS:
+• Care home closures
+• CQC enforcement
+• Funding crisis
+• Understaffing
+• Reform UK councils
+```
+
+### Best Practices
+
+**When to Use Trends**:
+- ✅ Weekly roundups of UK care news
+- ✅ Finding trending keywords for SEO
+- ✅ Content planning and ideation
+- ✅ Staying informed on sector developments
+- ✅ Identifying high-authority sources
+
+**When NOT to Use Trends**:
+- ❌ Deep company research (use Scout)
+- ❌ Writing articles (use Chronicle)
+- ❌ Strategic analysis (use Sage)
+
+### MCP Tools Used
+
+**BrightData MCP** (`@brightdata/mcp`):
+- `search_engine` - Google SERP with rankings
+- `search_engine_batch` - Up to 10 parallel searches
+- `scrape_as_markdown` - Extract page content
+
+---
+
 ## 🎭 Agent Collaboration (Future)
 
 ### Multi-Agent Workflows
@@ -747,15 +897,15 @@ return {
 
 ## 📊 Agent Comparison Matrix
 
-| Feature | Scout 🔍 | Sage 🧙 | Chronicle ✍️ | Maven 👋 |
-|---------|----------|---------|--------------|----------|
-| **Model** | Sonnet | Opus | Sonnet | Haiku |
-| **Speed** | Medium | Slower | Medium | Fast |
-| **Cost** | Medium | High | Medium | Low |
-| **Context** | 180K | 200K | 180K | 180K |
-| **Specialization** | Research | Analysis | Journalism | General |
-| **Best For** | Finding info | Deep thinking | UK care articles | Simple tasks |
-| **Tool Count** | 3 | 2 | 2 | 1 |
+| Feature | Scout 🔍 | Sage 🧙 | Chronicle ✍️ | Maven 👋 | Trends 📈 |
+|---------|----------|---------|--------------|----------|-----------|
+| **Model** | Sonnet | Opus | Sonnet | Haiku | Sonnet |
+| **Speed** | Medium | Slower | Medium | Fast | Fast |
+| **Cost** | Medium | High | Medium | Low | Medium |
+| **Context** | 180K | 200K | 180K | 180K | 180K |
+| **Specialization** | Research | Analysis | Journalism | General | SEO/News |
+| **Best For** | Finding info | Deep thinking | UK care articles | Simple tasks | Trending topics |
+| **MCP** | Exa | Exa | Exa+Firecrawl | None | BrightData |
 
 ---
 

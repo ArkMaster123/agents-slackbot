@@ -2,7 +2,7 @@ import { verifySlackRequest } from '../src/slack/client.js';
 import { formatTeamIntroduction } from '../src/slack/formatters.js';
 
 export const config = {
-  runtime: 'nodejs22.x',
+  maxDuration: 300,
 };
 
 export default async function handler(request: Request) {

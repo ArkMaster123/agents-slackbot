@@ -2,7 +2,14 @@ import { AgentBase } from '../base/AgentBase.js';
 import type { AgentConfig, Tool } from '../base/types.js';
 import Exa from 'exa-js';
 
-const exa = new Exa(process.env.EXA_API_KEY);
+// Lazy initialization to avoid loading before env vars are set
+let exaClient: Exa | null = null;
+function getExa(): Exa {
+  if (!exaClient) {
+    exaClient = new Exa(process.env.EXA_API_KEY);
+  }
+  return exaClient;
+}
 
 export class ScoutAgent extends AgentBase {
   constructor() {
@@ -64,7 +71,7 @@ ALWAYS include sources in your responses!`,
       execute: async (params) => {
         const { query, specificDomain } = params;
 
-        const { results } = await exa.searchAndContents(query, {
+        const { results } = await getExa().searchAndContents(query, {
           livecrawl: 'always',
           numResults: 5,
           includeDomains: specificDomain ? [specificDomain] : undefined,
@@ -117,7 +124,7 @@ ALWAYS include sources in your responses!`,
 
         // Get company information
         if (companyUrl) {
-          const { results } = await exa.searchAndContents(companyUrl, {
+          const { results } = await getExa().searchAndContents(companyUrl, {
             numResults: 3,
             livecrawl: 'always',
             text: true,
@@ -131,7 +138,7 @@ ALWAYS include sources in your responses!`,
             highlights: r.highlights || [],
           }));
         } else {
-          const { results } = await exa.searchAndContents(`${companyIdentifier} company`, {
+          const { results } = await getExa().searchAndContents(`${companyIdentifier} company`, {
             numResults: 3,
             livecrawl: 'always',
             category: 'company',
@@ -153,7 +160,7 @@ ALWAYS include sources in your responses!`,
             ? companyIdentifier.replace(/^https?:\/\//, '').replace(/\/$/, '')
             : companyIdentifier;
 
-          const { results: newsResults } = await exa.searchAndContents(
+          const { results: newsResults } = await getExa().searchAndContents(
             `${newsQuery} news`,
             {
               numResults: 3,
@@ -176,7 +183,7 @@ ALWAYS include sources in your responses!`,
         // Find similar companies if requested
         if (findSimilar && companyInfo.length > 0) {
           try {
-            const { results: similarResults } = await exa.findSimilarAndContents(
+            const { results: similarResults } = await getExa().findSimilarAndContents(
               companyInfo[0].url,
               {
                 numResults: 5,
@@ -228,7 +235,7 @@ ALWAYS include sources in your responses!`,
         const { query, numResults = 5 } = params;
         const limitedResults = Math.min(numResults, 10);
 
-        const { results } = await exa.searchAndContents(query, {
+        const { results } = await getExa().searchAndContents(query, {
           numResults: limitedResults,
           category: 'people' as any, // Types not updated yet
           text: true,

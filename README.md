@@ -1,39 +1,42 @@
-# 🤖 Agents Slackbot
+# 🤖 Agenticators
 
-A multi-agent Slack bot where specialized AI characters collaborate to help your team. Powered by Claude Agent SDK with OpenRouter.
+> *Your AI crew for UK care sector intelligence*
+
+![Agenticators Team](assets/agenticators-team.jpeg)
+
+A multi-agent Slack bot where specialized AI agents collaborate to help your team. Powered by Claude Agent SDK + OpenRouter + MCP (Model Context Protocol).
 
 ## Meet Your AI Team
 
-**🔍 Scout** - The Intelligence Gatherer
-*"I'll track that down for you!"*
-Research specialist who finds companies, people, and information across the web.
-
-**🧙 Sage** - The Strategic Analyst
-*"Let me break this down for you..."*
-Thoughtful analyst who provides deep insights and strategic recommendations.
-
-**✍️ Chronicle** - The Newsroom Editor
-*"Let's craft this story right..."*
-Editorial specialist for CareScope Intelligence articles and news analysis.
-
-**👋 Maven** - The Friendly Generalist
-*"I'm here to help!"*
-Your go-to assistant for general tasks and routing to specialists.
+| Agent | Role | Specialty |
+|-------|------|-----------|
+| 🔍 **Scout** | Intelligence Gatherer | Research, companies, people, code/repos |
+| 🧙 **Sage** | Strategic Analyst | Analysis, comparisons, strategy |
+| ✍️ **Chronicle** | Newsroom Editor | UK care articles, CareScope content |
+| 👋 **Maven** | Friendly Generalist | General help, routing |
+| 📈 **Trends** | SEO Intelligence | Google rankings, trending keywords, UK care news |
 
 ## How It Works
 
-Users interact with the bot in Slack, and the **Orchestrator** intelligently routes requests to the right specialist. For complex tasks, agents collaborate:
+Users interact with the bot in Slack, and the **Orchestrator** intelligently routes requests to the right specialist:
 
 ```
-User: "Research Stripe and analyze their market position"
+User: "What are the top 10 things happening in UK care this week?"
 
-🔍 Scout is researching Stripe...
-   └─ Found company info, funding, competitors
+📈 Trends is searching Google SERP...
+   └─ Found 10 stories with rankings & sources
 
-🧙 Sage is analyzing market positioning...
-   └─ Comparing to Square, Adyen, PayPal
+Here's what's trending:
+#1 - Reform council care home closures (Guardian, 5 days ago)
+#2 - CQC shuts unsafe Kent care home (ITV)
+#3 - 95+ care homes closed since April (Estates Gazette)
+...
 
-✨ Here's your analysis: [combined response]
+TRENDING KEYWORDS:
+• Care home closures
+• CQC enforcement
+• Funding crisis
+• Understaffing
 ```
 
 ## Architecture
@@ -43,21 +46,25 @@ Slack Users
     ↓
 Slack Bot (Vercel)
     ↓
-Orchestrator (intent routing)
+SDK Orchestrator (intent routing)
     ↓
-┌─────────┬─────────┬──────────┬────────┐
-│ Scout   │ Sage    │Chronicle │ Maven  │
-└─────────┴─────────┴──────────┴────────┘
-    ↓
-Tools (Exa Search, Slack API, Database)
+┌─────────┬─────────┬──────────┬────────┬────────┐
+│ Scout   │ Sage    │Chronicle │ Maven  │ Trends │
+│  🔍     │  🧙     │   ✍️     │  👋    │  📈    │
+└─────────┴─────────┴──────────┴────────┴────────┘
+    ↓           ↓          ↓                ↓
+  Exa MCP    Exa MCP   Exa+Firecrawl   BrightData MCP
 ```
 
-### Key Components
+### MCP Tools by Agent
 
-- **Agents**: Scout, Sage, Chronicle, Maven (each with personality and specialization)
-- **Orchestrator**: Routes requests based on intent classification
-- **Tools**: Web search, company prospecting, article generation, weather, etc.
-- **Storage**: Thread context, user settings, article drafts
+| Agent | MCP Server | Tools |
+|-------|------------|-------|
+| Scout | Exa | web_search, company_research, linkedin_search, crawling, **get_code_context** |
+| Sage | Exa | web_search, company_research |
+| Chronicle | Exa + Firecrawl | web_search, crawling, scrape |
+| Maven | None | General responses |
+| Trends | BrightData | **search_engine** (Google SERP with rankings), search_engine_batch |
 
 ## Setup
 
@@ -69,159 +76,138 @@ npm install
 
 ### 2. Configure Environment
 
-Copy `.env.example` to `.env` and fill in:
+Copy `.env.example` to `.env.local`:
 
 ```bash
+# OpenRouter (Claude via SDK)
+ANTHROPIC_BASE_URL=https://openrouter.ai/api
+ANTHROPIC_API_KEY=sk-or-v1-xxx
+OPENROUTER_API_KEY=sk-or-v1-xxx
+
+# MCP Servers
+EXA_API_KEY=xxx
+FIRECRAWL_API_KEY=fc-xxx
+BRIGHTDATA_API_KEY=xxx
+
 # Slack
-SLACK_BOT_TOKEN=xoxb-...
-SLACK_SIGNING_SECRET=...
-
-# OpenRouter (used as Anthropic API via base URL)
-OPENROUTER_API_KEY=sk-or-v1-...
-ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1
-
-# Exa (web search)
-EXA_API_KEY=...
+SLACK_BOT_TOKEN=xoxb-xxx
+SLACK_SIGNING_SECRET=xxx
 ```
 
-### 3. Set Up Slack App
-
-1. Create app at [api.slack.com/apps](https://api.slack.com/apps)
-2. Add Bot Token Scopes:
-   - `app_mentions:read`
-   - `chat:write`
-   - `im:history`
-   - `im:read`
-   - `im:write`
-3. Subscribe to events:
-   - `app_mention`
-   - `message:im`
-4. Set Request URL: `https://your-app.vercel.app/api/events`
-
-### 4. Deploy
+### 3. Test Locally
 
 ```bash
-# Deploy to Vercel
-vercel
+# Test all agents routing
+npx tsx test-routing.ts
 
-# Or run locally
-npm run dev
+# Test Trends agent (Google SERP + keywords)
+npx tsx test-trends.ts
+
+# Interactive chat
+npx tsx test-sdk-orchestrator.ts
 ```
 
-## Usage
+### 4. Deploy to Vercel
 
-### Direct Messages
-Just send a DM to the bot - Maven will greet you and route as needed!
+```bash
+vercel deploy
+```
 
-### Channel Mentions
-Mention the bot: `@AgentsBot research Stripe`
+Then update your Slack app's Request URL to: `https://your-app.vercel.app/api/events`
 
-### Slash Commands
-- `/team` - Meet all the agents
-- `/aisettings` - Configure your model preferences
+## Usage Examples
 
-### Example Requests
+### For Scout (Research)
+- "Research Anthropic and find competitors"
+- "Find CTOs at AI startups in London"
+- "Tell me about the @anthropic-ai/claude-agent-sdk npm package"
+- "What's in this GitHub repo?"
 
-**For Scout (Research):**
-- "Research [company name]"
-- "Find CTOs at AI startups in SF"
-- "Who are the key people at Stripe?"
-
-**For Sage (Analysis):**
+### For Sage (Analysis)
 - "Compare AWS vs GCP for startups"
-- "Analyze the social care market"
-- "What are the strategic implications of [topic]?"
+- "Analyze the UK care home market"
+- "What are the pros and cons of Next.js vs Remix?"
 
-**For Chronicle (Articles):**
+### For Chronicle (UK Care Articles)
 - "Write an article about CQC inspection trends"
-- "Research UK care home staffing crisis and write analysis"
+- "Research UK care home staffing crisis"
 
-**For Maven (General):**
-- "What's the weather in London?"
-- "Help me configure settings"
-- "Who should I talk to about market research?"
+### For Trends (SEO Intelligence)
+- "What are the top 10 things happening in UK care this week?"
+- "Give me trending keywords in social care"
+- "What's breaking in care homes today?"
+- "Latest CQC news with sources"
+
+### For Maven (General)
+- "Hello!"
+- "What can you help me with?"
+- "Who should I ask about market research?"
 
 ## Tech Stack
 
-- **Framework**: Claude Agent SDK (via OpenRouter)
-- **Agents**: Custom multi-agent orchestration
+- **Framework**: Claude Agent SDK
+- **LLM Routing**: OpenRouter
+- **MCP Servers**: Exa, Firecrawl, BrightData
 - **Slack**: @slack/web-api
-- **Search**: Exa API
-- **Deployment**: Vercel Serverless Functions
+- **Deployment**: Vercel Serverless
 - **Language**: TypeScript
 
 ## Project Structure
 
 ```
-agents-slackbot/
+agenticators/
 ├── src/
-│   ├── agents/           # Character agents
-│   │   ├── base/         # AgentBase class
-│   │   ├── orchestrator/ # Routing & coordination
-│   │   ├── scout/        # Research specialist
-│   │   ├── sage/         # Analysis specialist
-│   │   ├── chronicle/    # News editor
-│   │   └── maven/        # General assistant
-│   ├── mcp/              # MCP tool management
-│   ├── slack/            # Slack client & formatters
-│   ├── storage/          # Context & settings
-│   └── utils/            # Logging, errors
-├── api/                  # Vercel endpoints
-│   ├── events.ts         # Slack events webhook
-│   └── commands/         # Slash commands
-└── tests/
+│   ├── agents/
+│   │   ├── sdk/              # SDK Orchestrator
+│   │   ├── scout/            # Research specialist
+│   │   ├── sage/             # Analysis specialist
+│   │   ├── chronicle/        # News editor
+│   │   ├── chronicle-qa/     # Article QA scoring
+│   │   ├── maven/            # General assistant
+│   │   └── trends/           # SEO intelligence
+│   ├── mcp/                  # MCP server configs
+│   └── slack/                # Slack client
+├── api/
+│   ├── events.ts             # Slack events webhook
+│   └── slash.ts              # Slash commands
+├── test-routing.ts           # Agent routing tests
+├── test-trends.ts            # Trends agent test
+└── test-chronicle-qa.ts      # QA scoring test
 ```
 
-## Development
+## Key Features
 
-```bash
-# Type check
-npm run type-check
+### Google SERP Rankings (Trends Agent)
+The Trends agent uses BrightData MCP to get **actual Google search rankings**:
+- Rank position (#1, #2, etc.) - SEO authority signal
+- Source domain - authority tier (gov.uk = Tier 1)
+- Recency - dates like "5 days ago"
+- Real URLs - never makes up sources
 
-# Build
-npm run build
+### Code Context (Scout Agent)
+Scout can research code/repos using Exa's `get_code_context` tool:
+- GitHub repositories
+- npm packages
+- API documentation
+- SDK usage examples
 
-# Run tests (coming soon)
-npm test
-```
+### Article QA (Chronicle QA Agent)
+Chronicle QA scores articles on 6 dimensions:
+- Structure, Data Quality, Writing Quality
+- Source Quality, Uniqueness, SEO/Accessibility
+- British English checks
+- UK care terminology validation
 
-## Features
+## Documentation
 
-### ✅ Implemented
-- Multi-agent architecture with character personalities
-- Intelligent intent routing
-- Web search and company prospecting
-- Thread context and memory
-- User settings and model selection
-
-### 🚧 Coming Soon
-- Agent collaboration visualization
-- Agent memory callbacks ("I researched this for you last week...")
-- Interactive workflows with buttons
-- Agent stats and leaderboard
-- Article preview generation
-
-## Authentication
-
-This bot uses **OpenRouter** with the Anthropic SDK base URL override:
-
-```typescript
-const client = new Anthropic({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: 'https://openrouter.ai/api/v1'
-});
-```
-
-This lets us use the official Claude Agent SDK while routing through OpenRouter for cost efficiency and model flexibility.
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repo
-2. Create a feature branch
-3. Make your changes
-4. Submit a PR
+- [AGENTS.md](./AGENTS.md) - Full agent capabilities & personalities
+- [SETUP.md](./SETUP.md) - Detailed setup guide
+- [TODO.md](./TODO.md) - Current status & roadmap
 
 ## License
 
 MIT
+
+---
+
+Built with ❤️ by the CareScope team

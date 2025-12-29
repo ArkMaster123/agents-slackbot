@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type {
   AgentConfig,
   AgentContext,
@@ -7,21 +6,81 @@ import type {
   Tool,
 } from './types.js';
 
+// Types for OpenRouter/OpenAI-compatible API
+interface ChatMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+}
+
+interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+interface OpenRouterResponse {
+  choices: Array<{
+    message: {
+      role: string;
+      content: string | null;
+      tool_calls?: ToolCall[];
+    };
+    finish_reason: string;
+  }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+/**
+ * Call OpenRouter API (OpenAI-compatible format)
+ * Works with any model including Gemini, Claude, Llama, etc.
+ */
+async function callOpenRouter(
+  model: string,
+  messages: ChatMessage[],
+  tools?: any[],
+  maxTokens = 4096,
+  temperature = 0.7
+): Promise<OpenRouterResponse> {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://github.com/agents-slackbot',
+      'X-Title': 'Agents Slackbot'
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      max_tokens: maxTokens,
+      temperature,
+      tools: tools && tools.length > 0 ? tools : undefined,
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenRouter API error: ${response.status} - ${error}`);
+  }
+
+  return await response.json() as OpenRouterResponse;
+}
+
 export abstract class AgentBase {
   protected config: AgentConfig;
-  protected client: Anthropic;
   protected tools: Map<string, Tool> = new Map();
 
   constructor(config: AgentConfig) {
     this.config = config;
-
-    // Initialize Anthropic client with OpenRouter base URL
-    this.client = new Anthropic({
-      apiKey: process.env.OPENROUTER_API_KEY!,
-      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
-    });
-
-    // Register tools for this agent
     this.registerTools();
   }
 
@@ -54,73 +113,68 @@ export abstract class AgentBase {
       // Build the system prompt with personality
       const systemPrompt = this.buildSystemPrompt(context);
 
-      // Prepare Anthropic tools from registered tools
-      const anthropicTools: Anthropic.Tool[] = Array.from(this.tools.values()).map(
-        (tool) => ({
+      // Prepare OpenAI-format tools from registered tools
+      const openaiTools = Array.from(this.tools.values()).map((tool) => ({
+        type: 'function' as const,
+        function: {
           name: tool.name,
           description: tool.description,
-          input_schema: tool.parameters,
-        })
+          parameters: tool.parameters,
+        },
+      }));
+
+      // Convert Anthropic-style messages to OpenAI format
+      const messages: ChatMessage[] = [
+        { role: 'system', content: systemPrompt },
+        ...context.messages.map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        }))
+      ];
+
+      // Call LLM via OpenRouter
+      const response = await callOpenRouter(
+        this.config.model,
+        messages,
+        openaiTools.length > 0 ? openaiTools : undefined,
+        this.config.maxTokens || 4096,
+        this.config.temperature || 0.7
       );
 
-      // Call Claude with tools
-      const response = await this.client.messages.create({
-        model: this.config.model,
-        max_tokens: this.config.maxTokens || 4096,
-        temperature: this.config.temperature || 0.7,
-        system: systemPrompt,
-        messages: context.messages,
-        tools: anthropicTools.length > 0 ? anthropicTools : undefined,
-      });
-
       // Process the response
-      let finalText = '';
-      const toolCalls: Anthropic.ToolUseBlock[] = [];
-
-      for (const block of response.content) {
-        if (block.type === 'text') {
-          finalText += block.text;
-        } else if (block.type === 'tool_use') {
-          toolCalls.push(block);
-        }
-      }
+      const message = response.choices?.[0]?.message;
+      let finalText = message?.content || '';
+      const toolCalls = message?.tool_calls || [];
 
       // Execute tools if there are tool calls
       if (toolCalls.length > 0) {
         const toolResults = await this.executeTools(toolCalls, context);
-        toolsUsed.push(...toolCalls.map((tc) => tc.name));
+        toolsUsed.push(...toolCalls.map((tc) => tc.function.name));
 
         // Continue conversation with tool results
-        const followUpMessages: Anthropic.MessageParam[] = [
-          ...context.messages,
-          {
-            role: 'assistant',
-            content: response.content,
+        const followUpMessages: ChatMessage[] = [
+          ...messages,
+          { 
+            role: 'assistant', 
+            content: message?.content || '',
+            tool_calls: toolCalls 
           },
-          {
-            role: 'user',
-            content: toolResults.map((result) => ({
-              type: 'tool_result' as const,
-              tool_use_id: result.tool_use_id,
-              content: JSON.stringify(result.content),
-            })),
-          },
+          ...toolResults.map((result) => ({
+            role: 'tool' as const,
+            tool_call_id: result.tool_call_id,
+            content: JSON.stringify(result.content),
+          })),
         ];
 
-        const followUpResponse = await this.client.messages.create({
-          model: this.config.model,
-          max_tokens: this.config.maxTokens || 4096,
-          temperature: this.config.temperature || 0.7,
-          system: systemPrompt,
-          messages: followUpMessages,
-        });
+        const followUpResponse = await callOpenRouter(
+          this.config.model,
+          followUpMessages,
+          undefined, // No tools on follow-up
+          this.config.maxTokens || 4096,
+          this.config.temperature || 0.7
+        );
 
-        // Extract final text
-        for (const block of followUpResponse.content) {
-          if (block.type === 'text') {
-            finalText += block.text;
-          }
-        }
+        finalText = followUpResponse.choices?.[0]?.message?.content || finalText;
       }
 
       // Convert markdown links to Slack format
@@ -165,34 +219,35 @@ IMPORTANT:
   }
 
   /**
-   * Execute tool calls
+   * Execute tool calls (OpenAI format)
    */
   protected async executeTools(
-    toolCalls: Anthropic.ToolUseBlock[],
+    toolCalls: ToolCall[],
     context: AgentContext
-  ): Promise<Array<{ tool_use_id: string; content: any }>> {
+  ): Promise<Array<{ tool_call_id: string; content: any }>> {
     const results = [];
 
     for (const toolCall of toolCalls) {
-      const tool = this.tools.get(toolCall.name);
+      const tool = this.tools.get(toolCall.function.name);
 
       if (!tool) {
         results.push({
-          tool_use_id: toolCall.id,
-          content: { error: `Tool ${toolCall.name} not found` },
+          tool_call_id: toolCall.id,
+          content: { error: `Tool ${toolCall.function.name} not found` },
         });
         continue;
       }
 
       try {
-        const result = await tool.execute(toolCall.input, context);
+        const args = JSON.parse(toolCall.function.arguments);
+        const result = await tool.execute(args, context);
         results.push({
-          tool_use_id: toolCall.id,
+          tool_call_id: toolCall.id,
           content: result,
         });
       } catch (error: any) {
         results.push({
-          tool_use_id: toolCall.id,
+          tool_call_id: toolCall.id,
           content: { error: error.message },
         });
       }

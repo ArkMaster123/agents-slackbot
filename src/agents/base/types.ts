@@ -1,6 +1,6 @@
 import type Anthropic from '@anthropic-ai/sdk';
 
-export type AgentRole = 'scout' | 'sage' | 'chronicle' | 'maven' | 'orchestrator';
+export type AgentRole = 'scout' | 'sage' | 'chronicle' | 'maven' | 'trends' | 'orchestrator';
 
 export interface AgentPersonality {
   name: string;

@@ -1,28 +1,64 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { AgentRole, AgentContext, AgentResponse } from '../base/types.js';
 import { MavenAgent } from '../maven/MavenAgent.js';
 import { ScoutAgent } from '../scout/ScoutAgent.js';
 import { SageAgent } from '../sage/SageAgent.js';
 import { ChronicleAgent } from '../chronicle/ChronicleAgent.js';
 
+/**
+ * Call OpenRouter for intent classification
+ */
+async function classifyWithLLM(userMessage: string): Promise<string> {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://github.com/agents-slackbot',
+      'X-Title': 'Agents Slackbot'
+    },
+    body: JSON.stringify({
+      model: process.env.ORCHESTRATOR_MODEL || 'google/gemini-2.0-flash-001',
+      messages: [
+        {
+          role: 'user',
+          content: `Classify this user request into ONE of these agent types:
+
+- scout: Research, finding information, company prospecting, finding people, web search
+- sage: Analysis, comparison, strategic insights, market research, decision support
+- chronicle: News articles, writing content, CareScope articles, UK social care journalism
+- maven: General help, weather, settings, unclear requests, casual conversation
+
+User request: "${userMessage}"
+
+Respond with ONLY the agent type (scout, sage, chronicle, or maven). No explanation.`
+        }
+      ],
+      max_tokens: 50,
+      temperature: 0.3,
+    })
+  });
+
+  if (!response.ok) {
+    console.error('Classification API error, defaulting to maven');
+    return 'maven';
+  }
+
+  const data = await response.json() as any;
+  return data.choices?.[0]?.message?.content?.trim().toLowerCase() || 'maven';
+}
+
 export class Orchestrator {
-  private agents: Map<AgentRole, any>;
-  private client: Anthropic;
+  private agents: Map<string, any>;
 
   constructor() {
     // Initialize all agents
-    this.agents = new Map([
+    // Note: This is the legacy orchestrator. Use SdkOrchestrator for full agent support.
+    this.agents = new Map<string, any>([
       ['maven', new MavenAgent()],
       ['scout', new ScoutAgent()],
       ['sage', new SageAgent()],
       ['chronicle', new ChronicleAgent()],
     ]);
-
-    // Fast model for intent classification
-    this.client = new Anthropic({
-      apiKey: process.env.OPENROUTER_API_KEY!,
-      baseURL: process.env.ANTHROPIC_BASE_URL || 'https://openrouter.ai/api/v1',
-    });
   }
 
   /**
@@ -67,7 +103,6 @@ export class Orchestrator {
 
   /**
    * Classify user intent and determine which agent should handle it
-   * Uses fast Haiku model for quick routing
    */
   private async classifyIntent(context: AgentContext): Promise<AgentRole> {
     // Get the last user message
@@ -98,39 +133,16 @@ export class Orchestrator {
       return 'maven';
     }
 
-    // If no clear keyword match, use Claude for classification
-    return await this.classifyWithClaude(userMessage);
+    // If no clear keyword match, use LLM for classification
+    return await this.classifyWithLLM(userMessage);
   }
 
   /**
-   * Use Claude Haiku for intent classification when keywords don't match
+   * Use LLM for intent classification when keywords don't match
    */
-  private async classifyWithClaude(userMessage: string): Promise<AgentRole> {
+  private async classifyWithLLM(userMessage: string): Promise<AgentRole> {
     try {
-      const response = await this.client.messages.create({
-        model: process.env.ORCHESTRATOR_MODEL || 'anthropic/claude-3-haiku',
-        max_tokens: 100,
-        temperature: 0.3,
-        messages: [
-          {
-            role: 'user',
-            content: `Classify this user request into ONE of these agent types:
-
-- scout: Research, finding information, company prospecting, finding people, web search
-- sage: Analysis, comparison, strategic insights, market research, decision support
-- chronicle: News articles, writing content, CareScope articles, UK social care journalism
-- maven: General help, weather, settings, unclear requests, casual conversation
-
-User request: "${userMessage}"
-
-Respond with ONLY the agent type (scout, sage, chronicle, or maven). No explanation.`,
-          },
-        ],
-      });
-
-      const classification = response.content[0].type === 'text'
-        ? response.content[0].text.trim().toLowerCase()
-        : 'maven';
+      const classification = await classifyWithLLM(userMessage);
 
       // Validate response is one of our agent types
       if (['scout', 'sage', 'chronicle', 'maven'].includes(classification)) {

@@ -6,6 +6,8 @@
 
 A multi-agent Slack bot where specialized AI agents collaborate to help your team. Powered by Claude Agent SDK + OpenRouter + MCP (Model Context Protocol).
 
+Made using Claude Agents SDK
+
 ## Meet Your AI Team
 
 | Agent | Role | Specialty |

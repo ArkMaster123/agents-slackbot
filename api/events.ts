@@ -18,8 +18,12 @@ export async function POST(request: Request) {
 
   // Dynamic imports - only load heavy dependencies when needed
   const { slackClient, getBotId, verifySlackRequest, getThreadMessages, isBotInThread } = await import('../src/slack/client.js');
-  const { handleRequest } = await import('../src/agents/sdk/SdkOrchestrator.js');
+  // Use legacy Orchestrator (direct API calls) instead of Claude Agent SDK (requires local CLI)
+  const { Orchestrator } = await import('../src/agents/orchestrator/Orchestrator.js');
   const { waitUntil } = await import('@vercel/functions');
+  
+  // Create orchestrator instance
+  const orchestrator = new Orchestrator();
 
   // Verify request is from Slack
   try {
@@ -32,6 +36,9 @@ export async function POST(request: Request) {
   const event = payload.event as SlackEvent;
   const botUserId = await getBotId();
 
+  // Handler function that uses orchestrator
+  const handleRequest = async (context: any) => orchestrator.handle(context);
+  
   // Dependencies object to pass to handlers
   const deps = { slackClient, getThreadMessages, handleRequest, isBotInThread };
 
@@ -111,48 +118,25 @@ async function handleAppMention(event: any, botUserId: string, deps: Deps) {
       messages,
     };
 
-    // Handle with SDK Orchestrator (with stage updates)
-    const response = await handleRequest(context, {
-      onStage: async (stage: string, data: any) => {
-        // Update thinking message with stage info
-        let stageText = '🤔 Processing...';
-        switch (stage) {
-          case 'routing':
-            stageText = '🎯 Routing to the right specialist...';
-            break;
-          case 'thinking':
-            stageText = `${data?.emoji || '🤔'} ${data?.agent || 'Agent'} is thinking...`;
-            break;
-          case 'tool_call':
-            stageText = `🔧 Using tool: ${data?.tool}...`;
-            break;
-          case 'responding':
-            stageText = '💬 Preparing response...';
-            break;
-        }
-        try {
-          await slackClient.chat.update({
-            channel,
-            ts: thinkingMsg.ts!,
-            text: stageText,
-          });
-        } catch (e) {
-          // Ignore update errors (rate limiting, etc.)
-        }
-      },
-    });
+    // Handle with Orchestrator (uses direct OpenRouter API calls)
+    const response = await handleRequest(context);
+
+    // Format response with agent info
+    const agentEmoji = getAgentEmoji(response.agent);
+    const agentName = getAgentName(response.agent);
+    const formattedText = `${agentEmoji} *${agentName}*\n\n${response.text}`;
 
     // Update thinking message with response
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: response.text,
+      text: formattedText,
       blocks: [
         {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: response.text,
+            text: formattedText,
           },
         },
       ],
@@ -178,7 +162,7 @@ async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
   // Post thinking message
   const thinkingMsg = await slackClient.chat.postMessage({
     channel,
-    text: '👋 Maven is thinking...',
+    text: '👋 Thinking...',
   });
 
   try {
@@ -198,14 +182,19 @@ async function handleDirectMessage(event: any, botUserId: string, deps: Deps) {
       messages,
     };
 
-    // Handle with SDK Orchestrator
+    // Handle with Orchestrator
     const response = await handleRequest(context);
+
+    // Format response with agent info
+    const agentEmoji = getAgentEmoji(response.agent);
+    const agentName = getAgentName(response.agent);
+    const formattedText = `${agentEmoji} *${agentName}*\n\n${response.text}`;
 
     // Update message
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: response.text,
+      text: formattedText,
     });
   } catch (error: any) {
     console.error('Error in handleDirectMessage:', error);
@@ -252,14 +241,19 @@ async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
       messages,
     };
 
-    // Handle with SDK Orchestrator
+    // Handle with Orchestrator
     const response = await handleRequest(context);
+
+    // Format response with agent info
+    const agentEmoji = getAgentEmoji(response.agent);
+    const agentName = getAgentName(response.agent);
+    const formattedText = `${agentEmoji} *${agentName}*\n\n${response.text}`;
 
     // Update message
     await slackClient.chat.update({
       channel,
       ts: thinkingMsg.ts!,
-      text: response.text,
+      text: formattedText,
     });
   } catch (error: any) {
     console.error('Error in handleThreadReply:', error);
@@ -270,6 +264,37 @@ async function handleThreadReply(event: any, botUserId: string, deps: Deps) {
       text: `⚠️ Error: ${error.message}`,
     });
   }
+}
+
+/**
+ * Build Anthropic messages from Slack thread
+ */
+/**
+ * Get agent emoji by role
+ */
+function getAgentEmoji(agent: string): string {
+  const emojis: Record<string, string> = {
+    scout: '🔍',
+    sage: '🧙',
+    chronicle: '✍️',
+    maven: '👋',
+    trends: '📈',
+  };
+  return emojis[agent] || '🤖';
+}
+
+/**
+ * Get agent display name by role
+ */
+function getAgentName(agent: string): string {
+  const names: Record<string, string> = {
+    scout: 'Scout',
+    sage: 'Sage',
+    chronicle: 'Chronicle',
+    maven: 'Maven',
+    trends: 'Trends',
+  };
+  return names[agent] || 'Agent';
 }
 
 /**
